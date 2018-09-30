@@ -141,8 +141,8 @@ app.get("/adverts/:id", function(req, res){
 //Create an User Account
 app.post("/users", function(req, res){
 	const saltRounds = 10
-	const username = req.body.name
-	const password = req.body.hashedPassword
+	const username = req.body.username
+	const password = req.body.password
 	const theHash = bcrypt.hashSync(password, saltRounds)
 
 	const query = `INSERT INTO User (username, hashedPassword) VALUES (?,?)`
@@ -162,8 +162,8 @@ app.post("/users", function(req, res){
 //Create an Company Account
 app.post("/companies", function(req, res){
 	const saltRounds = 10
-	const name = req.body.name
-	const password = req.body.hashedPassword
+	const name = req.body.username
+	const password = req.body.password
 	const location = req.body.location
 	const theHash = bcrypt.hashSync(password, saltRounds)
 
@@ -215,7 +215,7 @@ app.post("/token", function(req, res){
 		}else if(!account){
 			res.status(400).json({error: "invalid_client"})
 		}else{
-			if(bcrypt.compareSync(account.hashedPassword,hashedPassword)){
+			if(bcrypt.compareSync(hashedPassword,account.hashedPassword)){
 
 				const accessToken = jwt.sign({accountId: account.id}, jwtSecret)
 
