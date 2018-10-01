@@ -113,6 +113,27 @@ function validateAdvert(ad){
  	return valid
 }
 
+function authorize(){
+	const authorizationHeader = req.get("Authorization")
+	const accessToken = authorizationHeader.substr(7)
+
+	let tokenAccountId = null
+	try{
+		const payload = jwt.verify(accessToken, jwtSecret)
+		tokenAccountId = payload.accountId
+	}catch(error){
+		res.status(401).end()
+		return
+	}
+
+	if(tokenAccountId != accountId){
+		res.status(401).end()
+		return
+	}
+}
+	
+
+
 //Retriving all adverts
 app.get("/adverts", function(req, res){
 	let query ="SELECT * FROM Advert"
@@ -277,10 +298,12 @@ app.post("/token", function(req, res){
 			if(bcrypt.compareSync(hashedPassword,account.hashedPassword)){
 
 				const accessToken = jwt.sign({accountId: account.id}, jwtSecret)
+				const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
 
 				res.status(200).json({
 					access_token: accessToken,
-					token_type: "Bearer"
+					token_type: "Bearer",
+					id_token:idToken	
 				})
 
 			}else{
@@ -295,22 +318,8 @@ app.post("/token", function(req, res){
 //Create an advert when you are logged in as a company
 app.post("/adverts", function(req, res){
 	const advert = req.body
-	const authorizationHeader = req.get("Authorization")
-	const accessToken = authorizationHeader.substr(7)
 
-	let tokenAccountId = null
-	try{
-		const payload = jwt.verify(accessToken, jwtSecret)
-		tokenAccountId = payload.accountId
-	}catch(error){
-		res.status(401).end()
-		return
-	}
-
-	if(tokenAccountId != accountId){
-		res.status(401).end()
-		return
-	}
+	authorize();
 	const valid = validateAdvert(advert)
 
  	if(valid){
