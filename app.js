@@ -113,6 +113,7 @@ function validateAdvert(ad){
  	return valid
 }
 
+//Retriving all adverts
 app.get("/adverts", function(req, res){
 	const query = "SELECT * FROM Advert"
  	db.all(query, function(error, posts){
@@ -124,7 +125,7 @@ app.get("/adverts", function(req, res){
  	})
 })
 
-
+//Retriving a specific advert based on id
 app.get("/adverts/:id", function(req, res){
 	const id = parseInt(req.params.id)
 	const query = "SELECT * FROM Advert WHERE id=?"
@@ -137,9 +138,95 @@ app.get("/adverts/:id", function(req, res){
  	})
 })
 
+//Retriving specific adverts based on sector
+app.get("/adverts", function(req, res){
+	const sector = req.query.sector
+	const query = "SELECT * FROM Advert WHERE sector=?"
+ 	db.get(query,[sector], function(error, adverts){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(adverts)
+	 	}
+ 	})
+})
+
+//Retriving specific adverts based on certain skill *************
+app.get("/adverts", function(req, res){
+	const skill = req.query.skill
+	const query = `
+		SELECT * FROM Advert
+		JOIN AdvertSkill ON Advert.id=AdvertSkill.advert_id
+		JOIN Skill ON AdvertSkill.skill_id=Skill.id
+		WHERE skill_name=?
+	`
+ 	db.get(query,[skill], function(error, adverts){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(adverts)
+	 	}
+ 	})
+})
+
+//Retriving specific adverts based on location
+app.get("/adverts", function(req, res){
+	const location = req.query.location
+	const query = "SELECT * FROM Advert WHERE location=?"
+ 	db.get(query,[location], function(error, adverts){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(adverts)
+	 	}
+ 	})
+})
+
+//Retriving specific adverts based on type
+app.get("/adverts", function(req, res){
+	const type = req.query.type
+	const query = "SELECT * FROM Advert WHERE type=?"
+ 	db.get(query,[type], function(error, adverts){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(adverts)
+	 	}
+ 	})
+})
+
+//Retriving specific adverts based on title
+app.get("/adverts", function(req, res){
+	const title = req.query.title
+	const query = "SELECT * FROM Advert WHERE title=?"
+ 	db.get(query,[title], function(error, adverts){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(adverts)
+	 	}
+ 	})
+})
+
+//Retrive advert-skills *********
+app.get("/adverts/:id", function(req, res){
+	const id = parseInt(req.query.id)
+	const query = `SELECT * FROM Skill 
+	JOIN AdvertSkill ON Skill.id=AdvertSkill.skill_id
+	WHERE advert_id=?`
+ 	db.get(query,[id], function(error, skills){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(skills)
+	 	}
+ 	})
+})
+
+
 
 //Create an User Account
-app.post("/users", function(req, res){
+app.post("/user-accounts", function(req, res){
 	const saltRounds = 10
 	const username = req.body.username
 	const password = req.body.password
@@ -160,7 +247,7 @@ app.post("/users", function(req, res){
 })
 
 //Create an Company Account
-app.post("/companies", function(req, res){
+app.post("/company-accounts", function(req, res){
 	const saltRounds = 10
 	const name = req.body.username
 	const password = req.body.password
@@ -186,9 +273,7 @@ app.post("/companies", function(req, res){
 
 const jwtSecret = "dsjlksdjlkjfdsl"
 
-// POST /tokens
-// Content-Type: application/x-www-form-urlencoded
-// Body: grant_type=password&username=Alice&password=abc123&user_type=user
+//Getting a token for logging in 
 app.post("/token", function(req, res){
 	
 	const grant_type = req.body.grant_type
@@ -231,10 +316,9 @@ app.post("/token", function(req, res){
 	})
 
 })
-// POST /movies
-// Content-Type: application/json
-// Authorization: Bearer THE_ACCESS_TOKEN
-// Body: {"title": "Shrek", "abstract": "Green ogre", "accountId": 123}
+
+
+//Create an advert when you are logged in as a company
 app.post("/adverts", function(req, res){
 	const advert = req.body
 	const authorizationHeader = req.get("Authorization")
@@ -275,8 +359,21 @@ app.post("/adverts", function(req, res){
 
 })
 
+//Retrive user-skill if logged in 
+//Retrive adverts based on the overlay between advert skill and user skill for the user that is logged in 
 
+//Create user-skill
+//Create advert-skill
 
+//Update advert if you are logged in as the company that created it
+//Update company location or name
+//Update password
+
+//Delete company account
+//Delete user account
+//Delete advert if you are logged in as the company that created it
+//Delete user-skill
+//Delete advert-skill
 
 app.listen(3000)
 
