@@ -81,23 +81,23 @@ const app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
 
-
+/* 
 app.use(function corsMiddleware(req, res, next){
  res.header("Access-Control-Allow-Origin", "*")
  res.header("Access-Control-Allow-Methods", "*")
  res.header("Access-Control-Allow-Headers", "*")
  res.header("Access-Control-Expose-Headers", "*")
  next()
-})
+}) */
 
 function validateAdvert(ad){
 	var err = []
 	var valid=false
 
-	if(ad.name.length<=0){
+	if(ad.title.length<=0){
 		err.push('nameTooShort')
 	}
-	if( ad.name.length>20){
+	if( ad.title.length>20){
 		err.push('nameTooLong')
 	}
 	if(ad.description.length<10){
@@ -113,10 +113,10 @@ function validateAdvert(ad){
  	return valid
 }
 
-function authorize(){
+function authorize(req,res){
 	const authorizationHeader = req.get("Authorization")
 	const accessToken = authorizationHeader.substr(7)
-
+	const accountId = req.body.id
 	let tokenAccountId = null
 	try{
 		const payload = jwt.verify(accessToken, jwtSecret)
@@ -125,11 +125,12 @@ function authorize(){
 		res.status(401).end()
 		return
 	}
-
+	console.log(tokenAccountId, accountId)
 	if(tokenAccountId != accountId){
 		res.status(401).end()
 		return
 	}
+	return tokenAccountId
 }
 	
 
@@ -250,16 +251,17 @@ app.post("/company-accounts", function(req, res){
 	const theHash = bcrypt.hashSync(password, saltRounds)
 
 	const query = `
-		INSERT INTO Company (name, hashedPassword,location)
+		INSERT INTO Company (name, hashedPassword, location)
 		VALUES (?,?,?)
 	`
-	const values = [name, theHash,location]
+	const values = [name, theHash, location]
 
 	db.run(query, values, function(error){
 		if(error){
 			res.status(500).end()
+			console.log(error, password)
 		}else{
-			res.setHeader("Location", "/companies/"+this.lastID)
+			res.setHeader("Location", "/company-accounts/"+this.lastID)
 			res.status(201).end()
 		}
 	})
@@ -318,8 +320,7 @@ app.post("/token", function(req, res){
 //Create an advert when you are logged in as a company
 app.post("/adverts", function(req, res){
 	const advert = req.body
-
-	authorize();
+	const tokenAccountId = authorize(req,res);
 	const valid = validateAdvert(advert)
 
  	if(valid){
