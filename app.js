@@ -116,31 +116,32 @@ function validateAdvert(ad){
 //Retriving all adverts
 app.get("/adverts", function(req, res){
 	let query ="SELECT * FROM Advert"
-	let values
-	const title = request.query.title
-	const sector = request.query.sector
-	const location  = request.query.location
-	const type = request.query.type
+	let values = []
+	const title = req.query.title
+	const sector = req.query.sector
+	const location  = req.query.location
+	const type = req.query.type
 
 	//skill but not here
 	if(!(title==sector==location==type=='null')){
-		query+="WHERE"
+		query+=" WHERE"
 		if(title){
-			query+="title Like ?"
-			values+="%"+title+"%"
+			query+=" title = ?"
+			values.push(title)
 		}else if(sector){
-			query+="sector=?"
-			values+="%"+sector+"%"
+			query+=" sector=?"
+			values.push(sector)
 		}else if(location){
-			query+="location Like ?"
-			values+="%"+location+"%"
+			query+=" location =?"
+			values.push(location)
 		}else if(type){
-			query+="type=?"
-			values+="%"+type+"%"
+			query+=" type=?"
+			values.push(type)
 		}
 	}
+	// CASE sensitive !
 
- 	db.all(query, function(error, posts){
+ 	db.all(query,values, function(error, posts){
 	 	if(error){
 	 		res.status(500).end()
 	 	}else{
@@ -154,19 +155,6 @@ app.get("/adverts/:id", function(req, res){
 	const id = parseInt(req.params.id)
 	const query = "SELECT * FROM Advert WHERE id=?"
  	db.get(query,[id], function(error, adverts){
-	 	if(error){
-	 		res.status(404).end()
-	 	}else{
-	 	    res.status(200).json(adverts)
-	 	}
- 	})
-})
-
-//Retriving specific adverts based on sector
-app.get("/adverts", function(req, res){
-	const sector = req.query.sector
-	const query = "SELECT * FROM Advert WHERE sector=?"
- 	db.get(query,[sector], function(error, adverts){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
@@ -193,44 +181,6 @@ app.get("/adverts", function(req, res){
  	})
 })
 
-//Retriving specific adverts based on location
-app.get("/adverts", function(req, res){
-	const location = req.query.location
-	const query = "SELECT * FROM Advert WHERE location=?"
- 	db.get(query,[location], function(error, adverts){
-	 	if(error){
-	 		res.status(404).end()
-	 	}else{
-	 	    res.status(200).json(adverts)
-	 	}
- 	})
-})
-
-//Retriving specific adverts based on type
-app.get("/adverts", function(req, res){
-	const type = req.query.type
-	const query = "SELECT * FROM Advert WHERE type=?"
- 	db.get(query,[type], function(error, adverts){
-	 	if(error){
-	 		res.status(404).end()
-	 	}else{
-	 	    res.status(200).json(adverts)
-	 	}
- 	})
-})
-
-//Retriving specific adverts based on title
-app.get("/adverts", function(req, res){
-	const title = req.query.title
-	const query = "SELECT * FROM Advert WHERE title=?"
- 	db.get(query,[title], function(error, adverts){
-	 	if(error){
-	 		res.status(404).end()
-	 	}else{
-	 	    res.status(200).json(adverts)
-	 	}
- 	})
-})
 
 //Retrive advert-skills *********
 app.get("/adverts/:id", function(req, res){
