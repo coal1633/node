@@ -11,8 +11,8 @@ db.run("PRAGMA foreign_keys = ON")
 db.run(`
   CREATE TABLE IF NOT EXISTS Company (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name VAR CHAR(20) UNIQUE,
-		hashedPassword VAR CHAR(15),
+		name VARCHAR(20) UNIQUE,
+		hashedPassword VARCHAR(15),
 		location TEXT
 	)
 `)
@@ -20,8 +20,8 @@ db.run(`
 db.run(`
   CREATE TABLE IF NOT EXISTS User (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username VAR CHAR(20) UNIQUE,
-		hashedPassword VAR CHAR(15)
+		username VARCHAR(20) UNIQUE,
+		hashedPassword VARCHAR(15)
 	)
 `)
 
@@ -30,10 +30,10 @@ db.run(`
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		company_id INTEGER,
 		title TEXT UNIQUE,
-		sector VAR CHAR(30),
+		sector VARCHAR(30),
 		type TEXT,
 		description TEXT,
-		location VAR CHAR(50),
+		location VARCHAR(50),
 		FOREIGN KEY(\`company_id\`) REFERENCES \`Company\`(\`id\`) ON DELETE CASCADE
 	)
 `)
@@ -41,7 +41,7 @@ db.run(`
 db.run(`
   CREATE TABLE IF NOT EXISTS Skill (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		skill_name VAR CHAR(20) UNIQUE
+		skill_name VARCHAR(20) UNIQUE
 	)
 `)
 
@@ -115,7 +115,31 @@ function validateAdvert(ad){
 
 //Retriving all adverts
 app.get("/adverts", function(req, res){
-	const query = "SELECT * FROM Advert"
+	let query ="SELECT * FROM Advert"
+	let values
+	const title = request.query.title
+	const sector = request.query.sector
+	const location  = request.query.location
+	const type = request.query.type
+
+	//skill but not here
+	if(!(title==sector==location==type=='null')){
+		query+="WHERE"
+		if(title){
+			query+="title Like ?"
+			values+="%"+title+"%"
+		}else if(sector){
+			query+="sector=?"
+			values+="%"+sector+"%"
+		}else if(location){
+			query+="location Like ?"
+			values+="%"+location+"%"
+		}else if(type){
+			query+="type=?"
+			values+="%"+type+"%"
+		}
+	}
+
  	db.all(query, function(error, posts){
 	 	if(error){
 	 		res.status(500).end()
