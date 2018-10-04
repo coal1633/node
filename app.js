@@ -29,7 +29,7 @@ db.run(`
   CREATE TABLE IF NOT EXISTS Advert (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		company_id INTEGER,
-		title TEXT UNIQUE,
+		title TEXT,
 		sector VARCHAR(30),
 		type TEXT,
 		description TEXT,
@@ -110,19 +110,21 @@ function validateAdvert(ad){
  		valid=true
  	}
 
- 	return valid
+ 	return {valid,err}
 }
 
 function authorize(req,res){
 	const authorizationHeader = req.get("Authorization")
 	const accessToken = authorizationHeader.substr(7)
 	const accountId = req.body.id
+
+
 	let tokenAccountId = null
 	try{
 		const payload = jwt.verify(accessToken, jwtSecret)
 		tokenAccountId = payload.accountId
 	}catch(error){
-		res.status(401).end()
+		res.status(402).end()
 		return
 	}
 	console.log(tokenAccountId, accountId)
@@ -139,29 +141,28 @@ function authorize(req,res){
 app.get("/adverts", function(req, res){
 	let query ="SELECT * FROM Advert"
 	let values = []
-	const title = req.query.title
-	const sector = req.query.sector
-	const location  = req.query.location
-	const type = req.query.type
+	let title = req.query.title
+	let sector = req.query.sector
+	let location  = req.query.location
+	let type = req.query.type
 
 	//skill but not here
 	if(!(title==sector==location==type=='null')){
 		query+=" WHERE"
 		if(title){
 			query+=" title = ?"
-			values.push(title)
+			values.push(title.toLowerCase())
 		}else if(sector){
 			query+=" sector=?"
-			values.push(sector)
+			values.push(sector.toLowerCase())
 		}else if(location){
 			query+=" location =?"
-			values.push(location)
+			values.push(location.toLowerCase())
 		}else if(type){
 			query+=" type=?"
-			values.push(type)
+			values.push(type.toLowerCase())
 		}
 	}
-	// CASE sensitive !
 
  	db.all(query,values, function(error, posts){
 	 	if(error){
@@ -172,21 +173,30 @@ app.get("/adverts", function(req, res){
  	})
 })
 
-//Retriving a specific advert based on id
+//Retriving a specific advert based on id, including skills
 app.get("/adverts/:id", function(req, res){
 	const id = parseInt(req.params.id)
-	const query = "SELECT * FROM Advert WHERE id=?"
- 	db.get(query,[id], function(error, adverts){
+	const query1 = "SELECT * FROM Advert WHERE id=?"
+ 	db.get(query1,[id], function(error, adverts){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
-	 	    res.status(200).json(adverts)
+	 		const query2= `SELECT skill_name FROM Skill 
+			JOIN AdvertSkill ON Skill.id=AdvertSkill.skill_id
+			WHERE advert_id=?`
+		 	db.get(query2,[id], function(error, skills){
+			 	if(error){
+			 		res.status(404).end()
+			 	}else{
+			 	    res.status(200).json({adverts,skills})
+			 	}
+		 	})
 	 	}
  	})
 })
 
-//Retriving specific adverts based on certain skill *************
-app.get("/adverts", function(req, res){
+//Retriving specific adverts based on certain skill 
+app.get("/adverts-skill", function(req, res){
 	const skill = req.query.skill
 	const query = `
 		SELECT * FROM Advert
@@ -199,22 +209,6 @@ app.get("/adverts", function(req, res){
 	 		res.status(404).end()
 	 	}else{
 	 	    res.status(200).json(adverts)
-	 	}
- 	})
-})
-
-
-//Retrive advert-skills *********
-app.get("/adverts/:id", function(req, res){
-	const id = parseInt(req.query.id)
-	const query = `SELECT * FROM Skill 
-	JOIN AdvertSkill ON Skill.id=AdvertSkill.skill_id
-	WHERE advert_id=?`
- 	db.get(query,[id], function(error, skills){
-	 	if(error){
-	 		res.status(404).end()
-	 	}else{
-	 	    res.status(200).json(skills)
 	 	}
  	})
 })
@@ -271,6 +265,8 @@ app.post("/company-accounts", function(req, res){
 const jwtSecret = "dsjlksdjlkjfdsl"
 
 //Getting a token for logging in 
+
+// how can I be sure that an user cant make an advert?
 app.post("/token", function(req, res){
 	
 	const grant_type = req.body.grant_type
@@ -285,7 +281,7 @@ app.post("/token", function(req, res){
 		query = `SELECT * FROM Company WHERE name = ?`
 		values = [name]
 	}else if(user_type=='user'){
-		query = `SELECT * FROM User WHERE name = ?`
+		query = `SELECT * FROM User WHERE username = ?`
 		values = [name]
 	}else{
 		res.status(400).end()
@@ -321,11 +317,13 @@ app.post("/token", function(req, res){
 app.post("/adverts", function(req, res){
 	const advert = req.body
 	const tokenAccountId = authorize(req,res);
-	const valid = validateAdvert(advert)
+	const validData = validateAdvert(advert)
+	const valid=validData.valid
+	const err=validData.err
 
  	if(valid){
  		const query = "INSERT INTO Advert(company_id, title, sector, type, description, location) VALUES (?,?,?,?,?,?)"
- 		const values=[tokenAccountId,advert.title,advert.sector,advert.type, advert.description,advert.location]
+ 		const values=[tokenAccountId, advert.title, advert.sector, advert.type, advert.description, advert.location]
  		db.run(query,values,function(error){
 			if (error) {
 				res.status(500).end()
@@ -343,11 +341,15 @@ app.post("/adverts", function(req, res){
 
 })
 
+//create user friendly text for error
 
+// what about the application table
 
-//Retrive user skills **************
+//Retrive user skills ************** do otthers need to be able to access it?
+
+//you need to send id with the request. is there a better easier way
 app.get("/user-skills", function(req, res){
-
+	req.body.id=parseInt(req.query.id)
 	const tokenAccountId = authorize(req,res);
 
 	const query = `SELECT * FROM Skill 
@@ -367,9 +369,6 @@ function getOccurrence(array, value) {
     return array.filter((v) => (v === value)).length;
 }
 
-console.log(getOccurrence(arr, 1));  // 2
-console.log(getOccurrence(arr, 3));  // 3
-
 app.get("/adverts-user", function(req, res){
 	const tokenAccountId = authorize(req,res);
 	const query1 ="SELECT * UserSkill WHERE user_id="+tokenAccountId
@@ -377,16 +376,24 @@ app.get("/adverts-user", function(req, res){
 	const query3 ="SELECT * Advert"
 	let order=[]
 	let overlap=[]
+	let data=[]
 
  	db.all(query1,values, function(error, userSkills){
+ 		data.push(userSkills)
  	})
  	db.all(query2,values, function(error, advertSkills){
+ 		data.push(advertSkills)
  	})
  	db.all(query3,values, function(error, adverts){
- 	})
+ 		data.push(adverts)
+ 	}) 
+
+ 	const userSkills = data[0]
+ 	const advertSkills = data[1]
+ 	const adverts = data[2]
 
  	for (let i = 0; i<=userSkills.length; i++) {
- 		for(let k=0; k<=advert_id.length;k++){
+ 		for(let k=0; k<=advertSkills.length;k++){
  			if (userSkills[i]==advertSkills[k]) {
  				overlap.push(advertSkills[i].advert_id)
  			}
@@ -402,6 +409,7 @@ app.get("/adverts-user", function(req, res){
 
 
 //Create user-skill
+//Do I always need to send the id of the person who is logged in? Workaround or maybe a session-cookie
 app.post("/user-skill", function(req, res){
 	const tokenAccountId = authorize(req,res);
  
@@ -436,6 +444,7 @@ app.post("/advert-skill", function(req, res){
 
 
 //Update advert if you are logged in as the company that created it **********
+
 app.put("/advert/:id", function(req, res){
 	const tokenAccountId = authorize(req,res);
 	const id = req.params.id
@@ -444,26 +453,28 @@ app.put("/advert/:id", function(req, res){
 	
 	// Go ahead and update the resource.
 	const query = `
-		UPDATE Advert SET title sector=? , type=? , description=? , location= ?
+		UPDATE Advert SET title=?, sector=? , type=? , description=? , location= ?
 		WHERE id = ?
 	`
-	const values = [advert.sector, advert.type, advert.description, advert.location, id]
-	
+	const values = [advert.title, advert.sector, advert.type, advert.description, advert.location, id]
+	console.log(query)
 	db.run(query, values, function(error){
+		console.log(values)
 		if(error){
 			res.status(500).end()
 		}else{
-			res.status(204).end()
+
+			res.status(200).end()
 		}
 	})
 
 })
 
-
+/*
 //Update company location or name *********
-app.put("/company-accounts/:id", function(request, response){
+app.put("/company-accounts/:id", functionreq,res){
 	const tokenAccountId = authorize(req,res);
-	const id = request.params.id
+	const id = req.params.id
 	const name=req.body.name
 	const location=req.body.location
 	let query="UPDATE Company SET"
@@ -483,16 +494,16 @@ app.put("/company-accounts/:id", function(request, response){
 
 	db.run(query, values, function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
-			response.status(204).end()
+			res.status(204).end()
 		}
 	})
 
-})
+})*/
 
 //Update password ********
-app.put("/password", function(request, response){
+app.put("/password", function(req,res){
 	const tokenAccountId = authorize(req,res);
 	const saltRounds=10
 	const newPassword=req.body.password
@@ -511,98 +522,98 @@ app.put("/password", function(request, response){
 
 	db.run(query, values, function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
-			response.status(204).end()
+			res.status(204).end()
 		}
 	})
 
 })
 
 //Delete company account -**************
-app.delete("/company-accounts/:id", function(request, response){
+app.delete("/company-accounts/:id", function(req,res){
 	const tokenAccountId = authorize(req,res);
 	db.run("DELETE FROM Company WHERE id = ?", [tokenAccountId], function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
 })
 
 //Delete user account*******
-app.delete("/user-accounts/:id", function(request, response){
+app.delete("/user-accounts/:id", function(req,res){
 	const tokenAccountId = authorize(req,res);
 	db.run("DELETE FROM User WHERE id = ?", [tokenAccountId], function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
 })
 
 //Delete advert if you are logged in as the company that created it
-app.delete("/adverts/:id", function(request, response){
+app.delete("/adverts/:id", function(req,res){
 	const tokenAccountId = authorize(req,res);
 	const id=req.body.id
 	db.run("DELETE FROM Advert WHERE id = ?", [id], function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
 })
 
 //Delete user-skill***********
-app.delete("/user-skill/:id", function(request, response){
+app.delete("/user-skill/:id", function(req,res){
 	const tokenAccountId = authorize(req,res);
 	const skill_id=req.body.skill_id
 	db.run("DELETE FROM UserSkill WHERE user_id = ? and skill_id=?", [tokenAccountId,skill_id], function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
 })
 
 //Delete advert-skill***********
-app.delete("/advert-skill/:id", function(request, response){
+app.delete("/advert-skill/:id", function(req,res){
 	const tokenAccountId = authorize(req,res);
 	const advert_id=req.body.id
 	const skill_id=req.body.skill_id
 	db.run("DELETE FROM UserSkill WHERE advert_id = ? and skill_id=?", [advert_id,skill_id], function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
