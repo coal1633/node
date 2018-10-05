@@ -113,16 +113,15 @@ function validateAdvert(ad){
  	return {valid,err}
 }
 
-function authorize(req,res){
+function authorize(req,res,accountId){
 	const authorizationHeader = req.get("Authorization")
 	const accessToken = authorizationHeader.substr(7)
-	const accountId = req.body.id
-
 
 	let tokenAccountId = null
 	try{
 		const payload = jwt.verify(accessToken, jwtSecret)
 		tokenAccountId = payload.accountId
+		const user_type=payload.userType
 	}catch(error){
 		res.status(402).end()
 		return
@@ -132,7 +131,8 @@ function authorize(req,res){
 		res.status(401).end()
 		return
 	}
-	return tokenAccountId
+	return {tokenAccountId,user_type}
+	//return user type
 }
 	
 
@@ -177,6 +177,8 @@ app.get("/adverts", function(req, res){
 app.get("/adverts/:id", function(req, res){
 	const id = parseInt(req.params.id)
 	const query1 = "SELECT * FROM Advert WHERE id=?"
+	//req.headers.name-header
+	//req.get(Content-Type)
  	db.get(query1,[id], function(error, adverts){
 	 	if(error){
 	 		res.status(404).end()
@@ -295,7 +297,7 @@ app.post("/token", function(req, res){
 		}else{
 			if(bcrypt.compareSync(hashedPassword,account.hashedPassword)){
 
-				const accessToken = jwt.sign({accountId: account.id}, jwtSecret)
+				const accessToken = jwt.sign({accountId: account.id, userType: user_type}, jwtSecret)
 				const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
 
 				res.status(200).json({
@@ -316,12 +318,15 @@ app.post("/token", function(req, res){
 //Create an advert when you are logged in as a company
 app.post("/adverts", function(req, res){
 	const advert = req.body
-	const tokenAccountId = authorize(req,res);
+	const accountData = authorize(req,res,advert.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
 	const validData = validateAdvert(advert)
 	const valid=validData.valid
 	const err=validData.err
-
- 	if(valid){
+	//verify the user type
+ 	if(user_type=="company" && valid){
  		const query = "INSERT INTO Advert(company_id, title, sector, type, description, location) VALUES (?,?,?,?,?,?)"
  		const values=[tokenAccountId, advert.title, advert.sector, advert.type, advert.description, advert.location]
  		db.run(query,values,function(error){
@@ -349,8 +354,7 @@ app.post("/adverts", function(req, res){
 
 //you need to send id with the request. is there a better easier way
 app.get("/user-skills", function(req, res){
-	req.body.id=parseInt(req.query.id)
-	const tokenAccountId = authorize(req,res);
+	const tokenAccountId = authorize(req,res,req.query.id);
 
 	const query = `SELECT * FROM Skill 
 	JOIN UserSkill ON Skill.id=UserSkill.skill_id
@@ -376,35 +380,30 @@ app.get("/adverts-user", function(req, res){
 	const query3 ="SELECT * Advert"
 	let order=[]
 	let overlap=[]
-	let data=[]
 
- 	db.all(query1,values, function(error, userSkills){
- 		data.push(userSkills)
+
+ 	db.all(query1, function(error, userSkills){
+ 		
+	 		db.all(query2, function(error, advertSkills){
+	 		
+		 		db.all(query3 function(error, adverts){
+		 		for (let i = 0; i<=userSkills.length; i++) {
+			 		for(let k=0; k<=advertSkills.length;k++){
+			 			if (userSkills[i]==advertSkills[k]) {
+			 				overlap.push(advertSkills[i].advert_id)
+			 			}
+			 		}
+			 	}
+			 	for (let i = 0; i<=adverts.length; i++) {
+			 		let value=getOccurrence(overlap,adverts.id[i])
+			 		order.push(value,advert_id[i])
+			 	}
+			 	order.sort(function(a, b){return b.value - a.value}); 
+			 	res.status(200).json(order)
+		 	}) 
+	 	})
  	})
- 	db.all(query2,values, function(error, advertSkills){
- 		data.push(advertSkills)
- 	})
- 	db.all(query3,values, function(error, adverts){
- 		data.push(adverts)
- 	}) 
 
- 	const userSkills = data[0]
- 	const advertSkills = data[1]
- 	const adverts = data[2]
-
- 	for (let i = 0; i<=userSkills.length; i++) {
- 		for(let k=0; k<=advertSkills.length;k++){
- 			if (userSkills[i]==advertSkills[k]) {
- 				overlap.push(advertSkills[i].advert_id)
- 			}
- 		}
- 	}
- 	for (let i = 0; i<=adverts.length; i++) {
- 		let value=getOccurrence(overlap,adverts.id[i])
- 		order.push(value,advert_id[i])
- 	}
- 	order.sort(function(a, b){return b.value - a.value}); 
- 	res.status(200).json(order)
 })
 
 
@@ -624,3 +623,6 @@ app.delete("/advert-skill/:id", function(req,res){
 //add the functionality that you can search for more then one column at a time (filters)
 app.listen(3000)
 
+
+
+//get through function data from database that you just need
