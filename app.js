@@ -80,7 +80,7 @@ const app = express()
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
-
+const jwtSecret = "dsjlksdjlkjfdsl"
 /* 
 app.use(function corsMiddleware(req, res, next){
  res.header("Access-Control-Allow-Origin", "*")
@@ -205,7 +205,7 @@ app.get("/adverts/:id", function(req, res){
 })
 
 //Retriving specific adverts based on certain skill 
-app.get("/adverts-skill", function(req, res){
+app.get("/advert-skills", function(req, res){
 	const skill = req.query.skill
 	const query = `
 		SELECT * FROM Advert
@@ -271,11 +271,7 @@ app.post("/company-accounts", function(req, res){
 
 })
 
-const jwtSecret = "dsjlksdjlkjfdsl"
-
 //Getting a token for logging in 
-
-// how can I be sure that an user cant make an advert?
 app.post("/token", function(req, res){
 	
 	const grant_type = req.body.grant_type
@@ -332,14 +328,13 @@ app.post("/adverts", function(req, res){
 	const validData = validateAdvert(advert,user_type)
 	const valid=validData.valid
 	const err=validData.err
-	//verify the user type
+
  	if(valid){
  		const query = "INSERT INTO Advert(company_id, title, sector, type, description, location) VALUES (?,?,?,?,?,?)"
  		const values=[tokenAccountId, advert.title, advert.sector, advert.type, advert.description, advert.location]
  		db.run(query,values,function(error){
 			if (error) {
 				res.status(500).end()
-
 			}else{
 				const id = this.lastID
 				res.setHeader("Location", "/adverts/"+id)
@@ -353,20 +348,17 @@ app.post("/adverts", function(req, res){
 
 })
 
-//create user friendly text for error
 
-// what about the application table
 
-//Retrive user skills ************** do otthers need to be able to access it?
-
-//you need to send id with the request. is there a better easier way
-app.get("/user-skills", function(req, res){
-	const tokenAccountId = authorize(req,res,req.query.id);
+//Retrive user skills 
+app.get("/user-skills/:id", function(req, res){
+	const id = parseInt(req.params.id)
 
 	const query = `SELECT * FROM Skill 
 	JOIN UserSkill ON Skill.id=UserSkill.skill_id
 	WHERE user_id=?`
- 	db.get(query,[tokenAccountId], function(error, skills){
+
+ 	db.get(query,[id], function(error, skills){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
@@ -381,18 +373,19 @@ function getOccurrence(array, value) {
 }
 
 app.get("/adverts-user", function(req, res){
-	const tokenAccountId = authorize(req,res);
+	const accountData=authorize(req,res,req.query.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
 	const query1 ="SELECT * UserSkill WHERE user_id="+tokenAccountId
 	const query2 ="SELECT * AdvertSkill"
 	const query3 ="SELECT * Advert"
 	let order=[]
 	let overlap=[]
 
-
- 	db.all(query1, function(error, userSkills){
- 		
+	if(user_type=="user"){
+		db.all(query1, function(error, userSkills){
 	 		db.all(query2, function(error, advertSkills){
-	 		
 		 		db.all(query, function(error, adverts){
 		 		for (let i = 0; i<=userSkills.length; i++) {
 			 		for(let k=0; k<=advertSkills.length;k++){
@@ -407,18 +400,23 @@ app.get("/adverts-user", function(req, res){
 			 	}
 			 	order.sort(function(a, b){return b.value - a.value}); 
 			 	res.status(200).json(order)
-		 	}) 
+			 	}) 
+		 	})
 	 	})
- 	})
-
+	}else{
+		res.status(401).end()
+	}
 })
 
 
 //Create user-skill
-//Do I always need to send the id of the person who is logged in? Workaround or maybe a session-cookie
-app.post("/user-skill", function(req, res){
-	const tokenAccountId = authorize(req,res);
- 
+
+app.post("/user-skills", function(req, res){
+	const accountData=authorize(req,res,req.body.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+ 	
+ 	if(user_type="user"){
  		const query = "INSERT INTO UserSkill(user_id, skill_id) VALUES (?,?)"
  		const values=[tokenAccountId,req.body.skill_id]
  		db.run(query,values,function(error){
@@ -429,12 +427,18 @@ app.post("/user-skill", function(req, res){
 				res.status(201).end()
 			}
 		})
+ 	}else{
+		res.status(401).end()
+	}
 })
 
 //Create advert-skill
-app.post("/advert-skill", function(req, res){
-	const tokenAccountId = authorize(req,res);
+app.post("/advert-skills", function(req, res){
+	const accountData=authorize(req,res,req.body.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
  
+ 	if(user_type="company"){
  		const query = "INSERT INTO AdvertSkill(advert_id, skill_id) VALUES (?,?)"
  		const values=[req.body.advert_id,req.body.skill_id]
  		db.run(query,values,function(error){
@@ -445,75 +449,93 @@ app.post("/advert-skill", function(req, res){
 				res.status(201).end()
 			}
 		})
+	}else{
+		res.status(401).end()
+	}
 })
 
 
 
 //Update advert if you are logged in as the company that created it **********
-
-app.put("/advert/:id", function(req, res){
-	const tokenAccountId = authorize(req,res);
+app.put("/adverts/:id", function(req, res){
 	const id = req.params.id
 	const advert = req.body
-	const valid=validateAdvert(advert)
+	const accountData=authorize(req,res,req.body.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
+	const validData = validateAdvert(advert,user_type)
+	const valid=validData.valid
+	const err=validData.err
 	
-	// Go ahead and update the resource.
 	const query = `
 		UPDATE Advert SET title=?, sector=? , type=? , description=? , location= ?
 		WHERE id = ?
 	`
 	const values = [advert.title, advert.sector, advert.type, advert.description, advert.location, id]
-	console.log(query)
-	db.run(query, values, function(error){
-		console.log(values)
-		if(error){
-			res.status(500).end()
-		}else{
 
-			res.status(200).end()
-		}
-	})
-
+	if(valid){
+		db.run(query, values, function(error){
+			if(error){
+				res.status(500).end()
+			}else{
+				res.status(200).end()
+			}
+		})
+	}else{
+		res.status(400).json(err)
+	}
+	
 })
 
 /*
 //Update company location or name *********
 app.put("/company-accounts/:id", functionreq,res){
-	const tokenAccountId = authorize(req,res);
-	const id = req.params.id
+	const id = parseInt(req.params.id)
+
+	const accountData=authorize(req,res,id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
 	const name=req.body.name
 	const location=req.body.location
+
 	let query="UPDATE Company SET"
-	if (!name=='null' && location='null'){
+	if (!name=='undefined' && location='undefined'){
 		query+= "name= ?"
 	}
-	if(!location=='null' && name='null'){
+	if(!location=='undefined' && name='undefined'){
 		query+= "location= ?"
 	}
-	if(!name=='null' && !location='null'){
+	if(!name=='undefined' && !location='undefined'){
 		query+="name= ?, location = ?"
 	}
 
 	query+= "WHERE id = ?"
 
 	const values = [name,location,id]
-
-	db.run(query, values, function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			res.status(204).end()
-		}
-	})
-
+	
+	if(user_type="company"){
+		db.run(query, values, function(error){
+			if(error){
+				res.status(500).end()
+			}else{
+				res.status(204).end()
+			}
+		})
+	}else{
+		res.status(401).end()
+	}
 })*/
 
-//Update password ********
+//Update password 
 app.put("/password", function(req,res){
-	const tokenAccountId = authorize(req,res);
+	const accountData=authorize(req,res,req.body.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
 	const saltRounds=10
 	const newPassword=req.body.password
-	const user_type=req.body.user_type
 	const theHash = bcrypt.hashSync(password, saltRounds)
 
 
@@ -536,100 +558,135 @@ app.put("/password", function(req,res){
 
 })
 
-//Delete company account -**************
+//Delete company account
 app.delete("/company-accounts/:id", function(req,res){
-	const tokenAccountId = authorize(req,res);
-	db.run("DELETE FROM Company WHERE id = ?", [tokenAccountId], function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			const numberOfDeletetRows = this.changes
-			if(numberOfDeletetRows == 0){
-				res.status(404).end()
+	const id=parseInt(req.params.id)
+	const accountData=authorize(req,res,id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
+	if(user_type=="company"){
+		db.run("DELETE FROM Company WHERE id = ?", [tokenAccountId], function(error){
+			if(error){
+				res.status(500).end()
 			}else{
-				res.status(204).end()
+				const numberOfDeletetRows = this.changes
+				if(numberOfDeletetRows == 0){
+					res.status(404).end()
+				}else{
+					res.status(204).end()
+				}
 			}
-		}
-	})
+		})
+	}else{
+		res.status(401).end()
+	}
+	
 })
 
-//Delete user account*******
+//Delete user account
 app.delete("/user-accounts/:id", function(req,res){
-	const tokenAccountId = authorize(req,res);
-	db.run("DELETE FROM User WHERE id = ?", [tokenAccountId], function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			const numberOfDeletetRows = this.changes
-			if(numberOfDeletetRows == 0){
-				res.status(404).end()
+	const id=parseInt(req.params.id)
+	const accountData=authorize(req,res,id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
+	if(user_type=="user"){
+		db.run("DELETE FROM User WHERE id = ?", [tokenAccountId], function(error){
+			if(error){
+				res.status(500).end()
 			}else{
-				res.status(204).end()
+				const numberOfDeletetRows = this.changes
+				if(numberOfDeletetRows == 0){
+					res.status(404).end()
+				}else{
+					res.status(204).end()
+				}
 			}
-		}
-	})
+		})
+	}else{
+		res.status(401).end()
+	}
 })
 
 //Delete advert if you are logged in as the company that created it
 app.delete("/adverts/:id", function(req,res){
-	const tokenAccountId = authorize(req,res);
-	const id=req.body.id
-	db.run("DELETE FROM Advert WHERE id = ?", [id], function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			const numberOfDeletetRows = this.changes
-			if(numberOfDeletetRows == 0){
-				res.status(404).end()
+	const id=parseInt(req.params.id)
+	const accountData=authorize(req,res,req.body.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
+	if(user_type=="company"){
+		db.run("DELETE FROM Advert WHERE id = ?", [id], function(error){
+			if(error){
+				res.status(500).end()
 			}else{
-				res.status(204).end()
+				const numberOfDeletetRows = this.changes
+				if(numberOfDeletetRows == 0){
+					res.status(404).end()
+				}else{
+					res.status(204).end()
+				}
 			}
-		}
-	})
+		})
+	}else{
+		res.status(401).end()
+	}
 })
 
-//Delete user-skill***********
-app.delete("/user-skill/:id", function(req,res){
-	const tokenAccountId = authorize(req,res);
-	const skill_id=req.body.skill_id
-	db.run("DELETE FROM UserSkill WHERE user_id = ? and skill_id=?", [tokenAccountId,skill_id], function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			const numberOfDeletetRows = this.changes
-			if(numberOfDeletetRows == 0){
-				res.status(404).end()
+//Delete user-skill
+app.delete("/user-skills/:id", function(req,res){
+	const skill_id=parseInt(req.params.id)
+	const accountData=authorize(req,res,req.body.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+
+	if(user_type=="user"){
+		db.run("DELETE FROM UserSkill WHERE user_id = ? and skill_id=?", [tokenAccountId,skill_id], function(error){
+			if(error){
+				res.status(500).end()
 			}else{
-				res.status(204).end()
+				const numberOfDeletetRows = this.changes
+				if(numberOfDeletetRows == 0){
+					res.status(404).end()
+				}else{
+					res.status(204).end()
+				}
 			}
-		}
-	})
+		})
+	}else{
+		res.status(401).end()
+	}
 })
 
 //Delete advert-skill***********
-app.delete("/advert-skill/:id", function(req,res){
-	const tokenAccountId = authorize(req,res);
-	const advert_id=req.body.id
-	const skill_id=req.body.skill_id
-	db.run("DELETE FROM UserSkill WHERE advert_id = ? and skill_id=?", [advert_id,skill_id], function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			const numberOfDeletetRows = this.changes
-			if(numberOfDeletetRows == 0){
-				res.status(404).end()
+app.delete("/advert-skills/:id", function(req,res){
+	const skill_id=parseInt(req.params.id)
+	const accountData=authorize(req,res,req.body.id);
+	const tokenAccountId = accountData.tokenAccountId
+	const user_type=accountData.user_type
+	const advert_id=req.body.advert_id
+
+	if(user_type=="company"){
+		db.run("DELETE FROM UserSkill WHERE advert_id = ? and skill_id=?", [advert_id,skill_id], function(error){
+			if(error){
+				res.status(500).end()
 			}else{
-				res.status(204).end()
+				const numberOfDeletetRows = this.changes
+				if(numberOfDeletetRows == 0){
+					res.status(404).end()
+				}else{
+					res.status(204).end()
+				}
 			}
-		}
-	})
+		})
+	}else{
+		res.status(401).end()
+	}
 })
 
 
 //Change data so it is not case sensistive
-//add the functionality that you can search for more then one column at a time (filters)
 app.listen(3000)
 
 
-
-//get through function data from database that you just need
