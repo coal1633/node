@@ -90,7 +90,7 @@ app.use(function corsMiddleware(req, res, next){
  next()
 }) */
 
-function validateAdvert(ad){
+function validateAdvert(ad,user_type){
 	var err = []
 	var valid=false
 
@@ -106,6 +106,9 @@ function validateAdvert(ad){
 	if(ad.description.length>1000){
 		err.push('descriptionTooLong')
 	}
+	if(user_type=="user"){
+		err.push('invalidCreator')
+	}
  	if(err.length==0){
  		valid=true
  	}
@@ -116,12 +119,12 @@ function validateAdvert(ad){
 function authorize(req,res,accountId){
 	const authorizationHeader = req.get("Authorization")
 	const accessToken = authorizationHeader.substr(7)
-
+	let user_type=null
 	let tokenAccountId = null
 	try{
 		const payload = jwt.verify(accessToken, jwtSecret)
 		tokenAccountId = payload.accountId
-		const user_type=payload.userType
+		user_type = payload.userType
 	}catch(error){
 		res.status(402).end()
 		return
@@ -131,7 +134,7 @@ function authorize(req,res,accountId){
 		res.status(401).end()
 		return
 	}
-	return {tokenAccountId,user_type}
+	return {tokenAccountId, user_type}
 	//return user type
 }
 	
@@ -146,28 +149,32 @@ app.get("/adverts", function(req, res){
 	let location  = req.query.location
 	let type = req.query.type
 
+	console.log(req.query)
 	//skill but not here
-	if(!(title==sector==location==type=='null')){
-		query+=" WHERE"
-		if(title){
-			query+=" title = ?"
-			values.push(title.toLowerCase())
-		}else if(sector){
-			query+=" sector=?"
-			values.push(sector.toLowerCase())
-		}else if(location){
-			query+=" location =?"
-			values.push(location.toLowerCase())
-		}else if(type){
-			query+=" type=?"
-			values.push(type.toLowerCase())
-		}
-	}
+	if(req.query != ""){
 
+		query+=" WHERE"
+	}
+	if(title){
+		query+=" title = ?"
+		values.push(title.toLowerCase())
+	}else if(sector){
+		query+=" sector=?"
+		values.push(sector.toLowerCase())
+	}else if(location){
+		query+=" location =?"
+		values.push(location.toLowerCase())
+	}else if(type){
+		query+=" type=?"
+		values.push(type.toLowerCase())
+	}
+	
  	db.all(query,values, function(error, posts){
 	 	if(error){
+			console.log(query)
 	 		res.status(500).end()
 	 	}else{
+			console.log(query)
 	 	   res.status(200).json(posts)
 	 	}
  	})
@@ -322,11 +329,11 @@ app.post("/adverts", function(req, res){
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
-	const validData = validateAdvert(advert)
+	const validData = validateAdvert(advert,user_type)
 	const valid=validData.valid
 	const err=validData.err
 	//verify the user type
- 	if(user_type=="company" && valid){
+ 	if(valid){
  		const query = "INSERT INTO Advert(company_id, title, sector, type, description, location) VALUES (?,?,?,?,?,?)"
  		const values=[tokenAccountId, advert.title, advert.sector, advert.type, advert.description, advert.location]
  		db.run(query,values,function(error){
@@ -386,7 +393,7 @@ app.get("/adverts-user", function(req, res){
  		
 	 		db.all(query2, function(error, advertSkills){
 	 		
-		 		db.all(query3 function(error, adverts){
+		 		db.all(query, function(error, adverts){
 		 		for (let i = 0; i<=userSkills.length; i++) {
 			 		for(let k=0; k<=advertSkills.length;k++){
 			 			if (userSkills[i]==advertSkills[k]) {
