@@ -1,4 +1,4 @@
-const sqlite3 = require('sqlite3')
+ const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
 
 db.run("PRAGMA foreign_keys = ON")
