@@ -142,39 +142,41 @@ function authorize(req,res,accountId){
 
 //Retriving all adverts
 app.get("/adverts", function(req, res){
-	let query ="SELECT * FROM Advert"
+	let query =""
 	let values = []
-	let title = req.query.title
-	let sector = req.query.sector
-	let location  = req.query.location
-	let type = req.query.type
+	const title = req.query.title
+	const sector = req.query.sector
+	const location  = req.query.location
+	const type = req.query.type
 
-	console.log(req.query)
-	//skill but not here
-	if(req.query != ""){
+		if(title){
+			query+=" title = ? AND"
+			values.push(title.toLowerCase())
+		}
+		if(sector){
+			query+=" sector=? AND"
+			values.push(sector.toLowerCase())
+		}
+		if(location){
+			query+=" location =? AND"
+			values.push(location.toLowerCase())
+		}
+		if(type){
+			query+=" type=? AND"
+			values.push(type.toLowerCase())
+		}
+	//display a message when search has not found anhthing 
+	if(values!=""){
+		query = "SELECT * FROM Advert WHERE" + query
+		query = query.slice(0,-3)
+		}else{
+			query ="SELECT * FROM Advert"
+	}
 
-		query+=" WHERE"
-	}
-	if(title){
-		query+=" title = ?"
-		values.push(title.toLowerCase())
-	}else if(sector){
-		query+=" sector=?"
-		values.push(sector.toLowerCase())
-	}else if(location){
-		query+=" location =?"
-		values.push(location.toLowerCase())
-	}else if(type){
-		query+=" type=?"
-		values.push(type.toLowerCase())
-	}
-	
  	db.all(query,values, function(error, posts){
 	 	if(error){
-			console.log(query)
 	 		res.status(500).end()
 	 	}else{
-			console.log(query)
 	 	   res.status(200).json(posts)
 	 	}
  	})
