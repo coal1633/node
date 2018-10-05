@@ -3,10 +3,12 @@ const bodyParser = require('body-parser')
 require('body-parser-xml')(bodyParser)
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
-
 require('./database-structure')
 
 const app = express()
+
+const sqlite3 = require('sqlite3')
+const db = new sqlite3.Database("database.db")
 
 app.use(bodyParser.json())
 app.use(bodyParser.xml({
@@ -125,7 +127,7 @@ app.get("/adverts/:id", function(req, res){
 	 		const query2= `SELECT skill_name FROM Skill 
 			JOIN AdvertSkill ON Skill.id=AdvertSkill.skill_id
 			WHERE advert_id=?`
-		 	db.get(query2,[id], function(error, skills){
+		 	db.all(query2,[id], function(error, skills){
 			 	if(error){
 			 		res.status(404).end()
 			 	}else{
@@ -145,7 +147,7 @@ app.get("/advert-skills", function(req, res){
 		JOIN Skill ON AdvertSkill.skill_id=Skill.id
 		WHERE skill_name=?
 	`
- 	db.get(query,[skill], function(error, adverts){
+ 	db.all(query,[skill], function(error, adverts){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
@@ -280,7 +282,7 @@ app.post("/adverts", function(req, res){
 
 })
 
-
+//-------------------------------------------------------------------
 
 //Retrive user skills 
 app.get("/user-skills/:id", function(req, res){
@@ -290,7 +292,7 @@ app.get("/user-skills/:id", function(req, res){
 	JOIN UserSkill ON Skill.id=UserSkill.skill_id
 	WHERE user_id=?`
 
- 	db.get(query,[id], function(error, skills){
+ 	db.all(query,[id], function(error, skills){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
@@ -305,31 +307,32 @@ function getOccurrence(array, value) {
 }
 
 app.get("/adverts-user", function(req, res){
-	const accountData=authorize(req,res,req.query.id);
+	const id=parseInt(req.query.id)
+	const accountData=authorize(req,res,id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
-	const query1 ="SELECT * UserSkill WHERE user_id="+tokenAccountId
-	const query2 ="SELECT * AdvertSkill"
-	const query3 ="SELECT * Advert"
+	const query1 ="SELECT skill_id FROM UserSkill WHERE user_id="+tokenAccountId
+	const query2 ="SELECT skill_id,advert_id FROM AdvertSkill"
+	const query3 ="SELECT * FROM Advert"
 	let order=[]
 	let overlap=[]
 
 	if(user_type=="user"){
 		db.all(query1, function(error, userSkills){
 	 		db.all(query2, function(error, advertSkills){
-		 		db.all(query, function(error, adverts){
-		 		for (let i = 0; i<=userSkills.length; i++) {
-			 		for(let k=0; k<=advertSkills.length;k++){
-			 			if (userSkills[i]==advertSkills[k]) {
-			 				overlap.push(advertSkills[i].advert_id)
+		 		db.all(query3, function(error, adverts){
+		 		for (let i = 0; i<userSkills.length; i++) {
+			 		for(let k=0; k<advertSkills.length;k++){
+			 			if (userSkills[i].skill_id==advertSkills[k].skill_id) {
+			 				overlap.push(advertSkills[k].advert_id)
 			 			}
-			 		}
-			 	}
-			 	for (let i = 0; i<=adverts.length; i++) {
-			 		let value=getOccurrence(overlap,adverts.id[i])
-			 		order.push(value,advert_id[i])
-			 	}
+					 }
+				}
+			 	for (let i = 0; i<adverts.length; i++) {
+					 let value=getOccurrence(overlap,adverts[i].id)
+			 		 order.push({"value":value,"advert_id":adverts[i].id})
+				}
 			 	order.sort(function(a, b){return b.value - a.value}); 
 			 	res.status(200).json(order)
 			 	}) 
@@ -343,7 +346,8 @@ app.get("/adverts-user", function(req, res){
 
 //Create user-skill
 app.post("/user-skills", function(req, res){
-	const accountData=authorize(req,res,req.body.id);
+	const id=req.body.id
+	const accountData=authorize(req,res,id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
  	
