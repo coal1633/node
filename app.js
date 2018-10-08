@@ -29,16 +29,22 @@ function validateAdvert(ad,user_type){
 	var valid=false
 
 	if(ad.title.length<=0){
-		err.push({'nameTooShort':'Please provide a shorter name'})
+		err.push({'titleTooShort':'Please provide a shorter title'})
 	}
 	if( ad.title.length>20){
-		err.push({'nameTooLong':'Please provide a longer name'})
+		err.push({'titleTooLong':'Please provide a longer title'})
 	}
 	if(ad.description.length<10){
 		err.push({'descriptionTooShort': 'Please provide a shorter description'})
 	}
 	if(ad.description.length>1000){
 		err.push({'descriptionTooLong': 'Please provide a longer description'})
+	}
+	if(ad.sector.length<1){
+		err.push({'sectorTooShort': 'Please provide a shorter sector'})
+	}
+	if(ad.sector.length>100){
+		err.push({'sectorTooLong': 'Please provide a longer sector'})
 	}
 	if(user_type=="user"){
 		err.push({'invalidCreator':'You are not allowed to access adverts'})
@@ -166,18 +172,30 @@ app.post("/user-accounts", function(req, res){
 	const username = req.body.username
 	const password = req.body.password
 	const theHash = bcrypt.hashSync(password, saltRounds)
+	let valid = true
+
+	if(name.length<5){
+		res.status(400).json({"usernameTooShort":"Please provide a longer username"})
+		valid=false
+	}
+	if(name.length>50){
+		res.status(400).json({"usernameTooLong":"Please provide a shorter username"})
+		valid=false
+	}
 
 	const query = `INSERT INTO User (username, hashedPassword) VALUES (?,?)`
 	const values = [username, theHash]
+	if(valid){
+		db.run(query, values, function(error){
+			if(error){
+				res.status(500).end()
+			}else{
+				res.setHeader("Location", "/users/"+this.lastID)
+				res.status(201).end()
+			}
+		})
+	}
 
-	db.run(query, values, function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			res.setHeader("Location", "/users/"+this.lastID)
-			res.status(201).end()
-		}
-	})
 
 })
 
@@ -188,6 +206,16 @@ app.post("/company-accounts", function(req, res){
 	const password = req.body.password
 	const location = req.body.location.toLowerCase()
 	const theHash = bcrypt.hashSync(password, saltRounds)
+	let valid = true
+
+	if(name.length<5){
+		res.status(400).json({"usernameTooShort":"Please provide a longer username"})
+		valid=false
+	}
+	if(name.length>50){
+		res.status(400).json({"usernameTooLong":"Please provide a shorter username"})
+		valid=false
+	}
 
 	const query = `
 		INSERT INTO Company (name, hashedPassword, location)
@@ -195,7 +223,8 @@ app.post("/company-accounts", function(req, res){
 	`
 	const values = [name, theHash, location]
 
-	db.run(query, values, function(error){
+	if(valid){
+		db.run(query, values, function(error){
 		if(error){
 			res.status(500).end()
 			console.log(error, password)
@@ -204,6 +233,8 @@ app.post("/company-accounts", function(req, res){
 			res.status(201).end()
 		}
 	})
+	}
+	
 
 })
 
@@ -257,7 +288,7 @@ app.post("/token", function(req, res){
 //Create an advert when you are logged in as a company
 app.post("/adverts", function(req, res){
 	const advert = req.body
-	const accountData = authorize(req,res,advert.id);
+	const accountData = authorize(req,res,advert.company_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
@@ -301,6 +332,24 @@ app.get("/user-skills/:id", function(req, res){
 	 	}
  	})
 })
+
+//Retrive user skills 
+app.get("/advert-skills/:id", function(req, res){
+	const advert_id = parseInt(req.params.id)
+
+	const query = `SELECT * FROM Skill 
+	JOIN AdvertSkill ON Skill.id=AdvertSkill.skill_id
+	WHERE advert_id=?`
+
+ 	db.all(query,[advert_id], function(error, skills){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(skills)
+	 	}
+ 	})
+})
+
 
 
 //Retrive adverts based on the overlay between advert skill and user skill for the user that is logged in 
@@ -685,6 +734,59 @@ app.delete("/advert-skills", function(req,res){
 })
 
 
+// POST /oauth2/v4/token HTTP/1.1
+// Host: www.googleapis.com
+// Content-Type: application/x-www-form-urlencoded
+app.post("/oauth2/v4/token", function(req, res){
+
+	const FORM_URLENCODED = 'application/x-www-form-urlencoded';
+
+	 if(req.headers['content-type'] === FORM_URLENCODED) {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            callback(parse(body));
+        });
+    }
+
+		const yourCode = req.body.code
+		const client_id = req.body.client_id
+		const client_secret = req.body.client_secret
+		const redirect_uri = req.body.redirect_uri
+		const grant_type =  req.body.grant_type
+
+
+		
+
+		const accessToken = jwt.sign({clientId: client_id}, client_secret)
+		const idToken = jwt.sign({
+						  sub: client_id,
+						}, client_secret)
+
+		var decoded = jwt.decode(idToken);
+
+		// get the decoded payload and header
+		var decoded = jwt.decode(idToken, {complete: true});
+		const payload=res.decoded.payload.sub
+
+		const query = `INSERT INTO User (google_id) VALUES (?)`
+		const values = [payload]
+		if(valid){
+			db.run(query, values, function(error){
+				if(error){
+					res.status(500).end()
+				}else{
+					res.setHeader("Location", "/users/"+this.lastID)
+					res.status(201).end()
+				}
+			})
+		}
+})
+
+
+
 function getAllSkills(){
 	const query="SELECT * FROM Skill"
 	db.all(query, function(error,skills){
@@ -774,3 +876,4 @@ app.listen(3000)
 
 
 
+//Can we skip in the table code of the report how it would look like for xml
