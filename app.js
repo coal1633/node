@@ -11,14 +11,16 @@ const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
 
 app.use(bodyParser.json())
+
 app.use(bodyParser.xml({
-  limit: '1MB',   // Reject payload bigger than 1 MB
+  limit: '1MB',   
   xmlParseOptions: {
-    normalize: true,     // Trim whitespace inside text nodes
-    normalizeTags: true, // Transform tags to lowercase
-    explicitArray: false // Only put nodes in array if >1
+    normalize: true,     
+    normalizeTags: true, 
+    explicitArray: false 
   }
 }))
+
 app.use(bodyParser.urlencoded({extended: false}))
 const jwtSecret = "dsjlksdjlkjfdsl"
 
@@ -282,17 +284,16 @@ app.post("/adverts", function(req, res){
 
 })
 
-//-------------------------------------------------------------------
 
 //Retrive user skills 
 app.get("/user-skills/:id", function(req, res){
-	const id = parseInt(req.params.id)
+	const user_id = parseInt(req.params.id)
 
 	const query = `SELECT * FROM Skill 
 	JOIN UserSkill ON Skill.id=UserSkill.skill_id
 	WHERE user_id=?`
 
- 	db.all(query,[id], function(error, skills){
+ 	db.all(query,[user_id], function(error, skills){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
@@ -301,14 +302,15 @@ app.get("/user-skills/:id", function(req, res){
  	})
 })
 
+
 //Retrive adverts based on the overlay between advert skill and user skill for the user that is logged in 
 function getOccurrence(array, value) {
     return array.filter((v) => (v === value)).length;
 }
 
-app.get("/adverts-user", function(req, res){
-	const id=parseInt(req.query.id)
-	const accountData=authorize(req,res,id);
+app.get("/adverts-user/:id", function(req, res){
+	const user_id=parseInt(req.params.id)
+	const accountData=authorize(req,res,user_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
@@ -343,15 +345,14 @@ app.get("/adverts-user", function(req, res){
 	}
 })
 
-
 //Create user-skill
 app.post("/user-skills", function(req, res){
-	const id=req.body.id
-	const accountData=authorize(req,res,id);
+	const user_id=req.body.id
+	const accountData=authorize(req,res,user_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
  	
- 	if(user_type="user"){
+ 	if(user_type=="user"){
  		const query = "INSERT INTO UserSkill(user_id, skill_id) VALUES (?,?)"
  		const values=[tokenAccountId,req.body.skill_id]
  		db.run(query,values,function(error){
@@ -367,13 +368,14 @@ app.post("/user-skills", function(req, res){
 	}
 })
 
+
 //Create advert-skill
 app.post("/advert-skills", function(req, res){
 	const accountData=authorize(req,res,req.body.id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
  
- 	if(user_type="company"){
+ 	if(user_type=="company"){
  		const query = "INSERT INTO AdvertSkill(advert_id, skill_id) VALUES (?,?)"
  		const values=[req.body.advert_id,req.body.skill_id]
  		db.run(query,values,function(error){
@@ -397,13 +399,12 @@ app.post("/applications/:id", function(req, res){
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
  	
- 	if(user_type="user"){
+ 	if(user_type=="user"){
  		const query = "INSERT INTO Application(user_id, company_id, advert_id) VALUES (?,?,?)"
  		const values=[tokenAccountId,company_id,advert_id]
  		db.run(query,values,function(error){
 			if (error) {
 				res.status(500).end()
-
 			}else{
 				res.status(201).end()
 			}
@@ -418,7 +419,8 @@ app.post("/applications/:id", function(req, res){
 app.put("/adverts/:id", function(req, res){
 	const id = req.params.id
 	const advert = req.body
-	const accountData=authorize(req,res,req.body.id);
+	const company_id=req.body.company_id
+	const accountData=authorize(req,res,company_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
@@ -431,7 +433,7 @@ app.put("/adverts/:id", function(req, res){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
-	 		if(creator_id==tokenAccountId){
+	 		if(creator_id.company_id==tokenAccountId){
 	 			const query2 = `
 					UPDATE Advert SET title=?, sector=? , type=? , description=? , location= ?
 					WHERE id = ?`
@@ -458,6 +460,7 @@ app.put("/adverts/:id", function(req, res){
 	
 })
 
+
 //Update company location or name 
 app.put("/company-accounts/:id", function(req,res){
 	const id = parseInt(req.params.id)
@@ -469,18 +472,19 @@ app.put("/company-accounts/:id", function(req,res){
 	let name=req.body.name
 	let location=req.body.location
 
-	let query="UPDATE Company SET"
+	let query="UPDATE Company SET "
 	let values=[]
 
-	if (name!='undefined' && location=='undefined'){
+	if (name && !location){
 		query+= "name= ?"
 		values.push(name.toLowerCase())
 	}
-	if(location!='undefined' && name=='undefined'){
+	if(location && !name){
 		query+= "location= ?"
 		values.push(location.toLowerCase())
 	}
-	if(name!='undefined' && location!='undefined'){
+	console.log(name)
+	if(name && location){
 		query+="name= ?, location = ?"
 		values.push(name.toLowerCase())
 		values.push(location.toLowerCase())
@@ -490,12 +494,12 @@ app.put("/company-accounts/:id", function(req,res){
 	
 	values.push(tokenAccountId)
 
-	if(user_type="company"){
+	if(user_type=="company"){
 		db.run(query, values, function(error){
 			if(error){
 				res.status(500).end()
 			}else{
-				res.status(204).end()
+				res.status(202).end()
 			}
 		})
 	}else{
@@ -504,14 +508,15 @@ app.put("/company-accounts/:id", function(req,res){
 })
 
 //Update password 
-app.put("/password", function(req,res){
-	const accountData=authorize(req,res,req.body.id);
+app.put("/password/:id", function(req,res){
+	const accountId=parseInt(req.params.id)
+	const accountData=authorize(req,res,accountId);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
 	const saltRounds=10
 	const newPassword=req.body.password
-	const theHash = bcrypt.hashSync(password, saltRounds)
+	const theHash = bcrypt.hashSync(newPassword, saltRounds)
 
 
 	if(user_type=='company'){
@@ -527,11 +532,12 @@ app.put("/password", function(req,res){
 		if(error){
 			res.status(500).end()
 		}else{
-			res.status(204).end()
+			res.status(202).end()
 		}
 	})
 
 })
+
 
 //Delete company account
 app.delete("/company-accounts/:id", function(req,res){
@@ -549,7 +555,7 @@ app.delete("/company-accounts/:id", function(req,res){
 				if(numberOfDeletetRows == 0){
 					res.status(404).end()
 				}else{
-					res.status(204).end()
+					res.status(200).end()
 				}
 			}
 		})
@@ -558,6 +564,7 @@ app.delete("/company-accounts/:id", function(req,res){
 	}
 	
 })
+
 
 //Delete user account
 app.delete("/user-accounts/:id", function(req,res){
@@ -575,7 +582,7 @@ app.delete("/user-accounts/:id", function(req,res){
 				if(numberOfDeletetRows == 0){
 					res.status(404).end()
 				}else{
-					res.status(204).end()
+					res.status(200).end()
 				}
 			}
 		})
@@ -583,6 +590,7 @@ app.delete("/user-accounts/:id", function(req,res){
 		res.status(401).end()
 	}
 })
+
 
 //Delete advert if you are logged in as the company that created it
 app.delete("/adverts/:id", function(req,res){
@@ -592,12 +600,13 @@ app.delete("/adverts/:id", function(req,res){
 	const user_type=accountData.user_type
 
 	if(user_type=="company"){
-		const query1='SELECT company_id form Advert WHERE id=?'
+		const query1='SELECT company_id from Advert WHERE id=?'
 		db.get(query1,[id], function(error, creator_id){
 			if(error){
+			    console.log(error)
 				res.status(500).end()
 			}else{
-				if(creator_id==tokenAccountId){
+				if(creator_id.company_id==tokenAccountId){
 					db.run("DELETE FROM Advert WHERE id = ?", [id], function(error){
 						if(error){
 							res.status(500).end()
@@ -606,7 +615,7 @@ app.delete("/adverts/:id", function(req,res){
 							if(numberOfDeletetRows == 0){
 								res.status(404).end()
 							}else{
-								res.status(204).end()
+								res.status(200).end()
 							}
 						}
 					})
@@ -622,9 +631,9 @@ app.delete("/adverts/:id", function(req,res){
 })
 
 //Delete user-skill
-app.delete("/user-skills/:id", function(req,res){
-	const skill_id=parseInt(req.params.id)
-	const accountData=authorize(req,res,req.body.id);
+app.delete("/user-skills", function(req,res){
+	const skill_id=req.body.skill_id
+	const accountData=authorize(req,res,req.body.user_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
@@ -637,7 +646,7 @@ app.delete("/user-skills/:id", function(req,res){
 				if(numberOfDeletetRows == 0){
 					res.status(404).end()
 				}else{
-					res.status(204).end()
+					res.status(200).end()
 				}
 			}
 		})
@@ -646,24 +655,27 @@ app.delete("/user-skills/:id", function(req,res){
 	}
 })
 
+
 //Delete advert-skill
-app.delete("/advert-skills/:id", function(req,res){
-	const skill_id=parseInt(req.params.id)
-	const accountData=authorize(req,res,req.body.id);
+app.delete("/advert-skills", function(req,res){
+	const skill_id=req.body.skill_id
+	const accountData=authorize(req,res,req.body.company_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 	const advert_id=req.body.advert_id
 
+	const query="DELETE FROM AdvertSkill WHERE advert_id =? and skill_id=?"
 	if(user_type=="company"){
-		db.run("DELETE FROM UserSkill WHERE advert_id = ? and skill_id=?", [advert_id,skill_id], function(error){
+		db.run(query, [advert_id,skill_id], function(error){
 			if(error){
 				res.status(500).end()
 			}else{
+				console.log(query)
 				const numberOfDeletetRows = this.changes
 				if(numberOfDeletetRows == 0){
 					res.status(404).end()
 				}else{
-					res.status(204).end()
+					res.status(200).end()
 				}
 			}
 		})
@@ -671,12 +683,94 @@ app.delete("/advert-skills/:id", function(req,res){
 		res.status(401).end()
 	}
 })
+
+
+function getAllSkills(){
+	const query="SELECT * FROM Skill"
+	db.all(query, function(error,skills){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(skills)
+		}
+	})
+}
+function getOneSkill(id){
+	const query="SELECT * FROM Skill WHERE id=?"
+	db.all(query,[id], function(error,skills){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(skills)
+		}
+	})
+}
+
+
+function getAllUsers() {
+	const query="SELECT * FROM User"
+	db.all(query, function(error,users){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(users)
+		}
+	})
+}
+
+function getOneUser(id){
+	const query="SELECT * FROM User WHERE id=?"
+	db.all(query,[id], function(error,users){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(users)
+		}
+	})
+}
+function getAllCompanies() {
+	const query="SELECT * FROM Company"
+	db.all(query, function(error,companies){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(companies)
+		}
+	})
+}
+
+function getOneCompany(id){
+	const query="SELECT * FROM Company WHERE id=?"
+	db.all(query,[id], function(error,companies){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(companies)
+		}
+	})
+}
+function getAllApplications() {
+	const query="SELECT * FROM Application"
+	db.all(query, function(error,applications){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(applications)
+		}
+	})
+}
+function getOneApplication() {
+	const query="SELECT * FROM Application WHERE id=?"
+	db.all(query,[id], function(error,applications){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(applications)
+		}
+	})
+}
+
 app.listen(3000)
 
 
-//functions
-//get all skillls available
-//get all sectors
-//get all users
-//get all companies
-//get all applications
+
