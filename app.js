@@ -21,8 +21,18 @@ app.use(bodyParser.xml({
   }
 }))
 
+app.use(function(req, res, next){
+	let contentType = req.headers['content-type'];
+	if(contentType=="application/xml"){
+		req.body = req.body[Object.keys(req.body)[0]]
+	}
+	next()
+})
+
 app.use(bodyParser.urlencoded({extended: false}))
 const jwtSecret = "dsjlksdjlkjfdsl"
+
+
 
 function validateAdvert(ad,user_type){
 	var err = []
@@ -73,50 +83,7 @@ function authorize(req,res,accountId){
 	
 
 
-//Retriving all adverts
-app.get("/adverts", function(req, res){
-	let query =""
-	let values = []
-	let title = req.query.title
-	let sector = req.query.sector
-	let location  = req.query.location
-	let type = req.query.type
-	let contentType = req.headers['content-type'];
-		if(title){
-			query+=" title = ? AND"
-			values.push(title.toLowerCase())
-		}
-		if(sector){
-			query+=" sector=? AND"
-			values.push(sector.toLowerCase())
-		}
-		if(location){
-			query+=" location =? AND"
-			values.push(location.toLowerCase())
-		}
-		if(type){
-			query+=" type=? AND"
-			values.push(type.toLowerCase())
-		}
-		if(values!=""){
-			query = "SELECT * FROM Advert WHERE" + query
-			query = query.slice(0,-3)
-		}else{
-			query ="SELECT * FROM Advert"
-	}
 
- 	db.all(query,values, function(error, posts){
-	 	if(error){
-	 		res.status(500).end()
-	 	}else{
-	 		if(posts!=""){
-	 			res.status(200).json(posts)
-	 		}else{
-	 			res.status(200).json({'noEntriesFound':'There are no adverts that fulfil the criteria'})
-	 		}
-	 	}
- 	})
-})
 
 //Retriving a specific advert based on id, including skills
 app.get("/adverts/:id", function(req, res){
@@ -167,6 +134,7 @@ app.post("/user-accounts", function(req, res){
 	const password = req.body.password
 	const theHash = bcrypt.hashSync(password, saltRounds)
 
+
 	const query = `INSERT INTO User (username, hashedPassword) VALUES (?,?)`
 	const values = [username, theHash]
 
@@ -198,7 +166,6 @@ app.post("/company-accounts", function(req, res){
 	db.run(query, values, function(error){
 		if(error){
 			res.status(500).end()
-			console.log(error, password)
 		}else{
 			res.setHeader("Location", "/company-accounts/"+this.lastID)
 			res.status(201).end()
@@ -483,7 +450,6 @@ app.put("/company-accounts/:id", function(req,res){
 		query+= "location= ?"
 		values.push(location.toLowerCase())
 	}
-	console.log(name)
 	if(name && location){
 		query+="name= ?, location = ?"
 		values.push(name.toLowerCase())
@@ -603,7 +569,6 @@ app.delete("/adverts/:id", function(req,res){
 		const query1='SELECT company_id from Advert WHERE id=?'
 		db.get(query1,[id], function(error, creator_id){
 			if(error){
-			    console.log(error)
 				res.status(500).end()
 			}else{
 				if(creator_id.company_id==tokenAccountId){
@@ -670,7 +635,6 @@ app.delete("/advert-skills", function(req,res){
 			if(error){
 				res.status(500).end()
 			}else{
-				console.log(query)
 				const numberOfDeletetRows = this.changes
 				if(numberOfDeletetRows == 0){
 					res.status(404).end()
