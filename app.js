@@ -286,13 +286,13 @@ app.post("/adverts", function(req, res){
 
 //Retrive user skills 
 app.get("/user-skills/:id", function(req, res){
-	const id = parseInt(req.params.id)
+	const user_id = parseInt(req.params.id)
 
 	const query = `SELECT * FROM Skill 
 	JOIN UserSkill ON Skill.id=UserSkill.skill_id
 	WHERE user_id=?`
 
- 	db.all(query,[id], function(error, skills){
+ 	db.all(query,[user_id], function(error, skills){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
@@ -346,8 +346,8 @@ app.get("/adverts-user", function(req, res){
 
 //Create user-skill
 app.post("/user-skills", function(req, res){
-	const id=req.body.id
-	const accountData=authorize(req,res,id);
+	const user_id=req.body.id
+	const accountData=authorize(req,res,user_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
  	
@@ -416,9 +416,9 @@ app.post("/applications/:id", function(req, res){
 
 //Update advert if you are logged in as the company that created it 
 app.put("/adverts/:id", function(req, res){
-	const id = req.params.id
+	const company_id = req.params.id
 	const advert = req.body
-	const accountData=authorize(req,res,req.body.id);
+	const accountData=authorize(req,res,req.body.company_id);
 	const tokenAccountId = accountData.tokenAccountId
 	const user_type=accountData.user_type
 
@@ -427,7 +427,7 @@ app.put("/adverts/:id", function(req, res){
 	const err=validData.err
 	
 	const query1 = "SELECT company_id FROM Advert WHERE id=?"
- 	db.get(query1,[id], function(error, creator_id){
+ 	db.get(query1,[company_id], function(error, creator_id){
 	 	if(error){
 	 		res.status(404).end()
 	 	}else{
@@ -671,12 +671,94 @@ app.delete("/advert-skills/:id", function(req,res){
 		res.status(401).end()
 	}
 })
+
+
+function getAllSkills(){
+	const query="SELECT * FROM Skill"
+	db.all(query, function(error,skills){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(skills)
+		}
+	})
+}
+function getOneSkill(id){
+	const query="SELECT * FROM Skill WHERE id=?"
+	db.all(query,[id], function(error,skills){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(skills)
+		}
+	})
+}
+
+
+function getAllUsers() {
+	const query="SELECT * FROM User"
+	db.all(query, function(error,users){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(users)
+		}
+	})
+}
+
+function getOneUser(id){
+	const query="SELECT * FROM User WHERE id=?"
+	db.all(query,[id], function(error,users){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(users)
+		}
+	})
+}
+function getAllCompanies() {
+	const query="SELECT * FROM Company"
+	db.all(query, function(error,companies){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(companies)
+		}
+	})
+}
+
+function getOneCompany(id){
+	const query="SELECT * FROM Company WHERE id=?"
+	db.all(query,[id], function(error,companies){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(companies)
+		}
+	})
+}
+function getAllApplications() {
+	const query="SELECT * FROM Application"
+	db.all(query, function(error,applications){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(applications)
+		}
+	})
+}
+function getOneApplication() {
+	const query="SELECT * FROM Application WHERE id=?"
+	db.all(query,[id], function(error,applications){
+		if(error){
+			res.status(500).end()
+		}else{
+			res.status(200).json(applications)
+		}
+	})
+}
+
 app.listen(3000)
 
 
-//functions
-//get all skillls available
-//get all sectors
-//get all users
-//get all companies
-//get all applications
+
