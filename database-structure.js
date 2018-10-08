@@ -1,5 +1,6 @@
- const sqlite3 = require('sqlite3')
+const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
+module.exports= db
 
 db.run("PRAGMA foreign_keys = ON")
 
@@ -16,7 +17,8 @@ db.run(`
   CREATE TABLE IF NOT EXISTS User (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username VARCHAR(20) UNIQUE,
-		hashedPassword VARCHAR(15)
+		hashedPassword VARCHAR(15),
+		google_id INTEGER UNIQUE
 	)
 `)
 
