@@ -716,15 +716,14 @@ app.post("/oauth2/v4/token", function(req, res){
     }
 
 		const yourCode = req.body.code
-		const client_id = req.body.client_id
-		const client_secret = req.body.client_secret
-		const redirect_uri = req.body.redirect_uri
 		const grant_type =  req.body.grant_type
 
 
+send a post requst
+		const client_id = "447167448806-fg9acf7ibl8fndhovnhljgultltbj617.apps.googleusercontent.com"
+		const client_secret = "Cv7kE4o34_ZCdGH42P0jB0s2"
+		const redirect_uri = "http://luntern-node.com/redirect-by-google"
 		
-
-		const accessToken = jwt.sign({clientId: client_id}, client_secret)
 		const idToken = jwt.sign({
 						  sub: client_id,
 						}, client_secret)
@@ -733,7 +732,7 @@ app.post("/oauth2/v4/token", function(req, res){
 
 		// get the decoded payload and header
 		var decoded = jwt.decode(idToken, {complete: true});
-		const payload=res.decoded.payload.sub
+		const payload = res.decoded.payload.sub
 
 		const query = `INSERT INTO User (google_id) VALUES (?)`
 		const values = [payload]
