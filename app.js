@@ -712,11 +712,7 @@ app.post("/oauth2/v4/token", function(req, res){
 		const url= "code="+yourCode+"&client_id="+client_id+"&client_secret="+client_secret+"&redirect_uri="+redirect_uri+"&grant_type=authorization_code"
 		
 		let post_options = {
-<<<<<<< HEAD
-		    host: 'googleapis.com',
-=======
 		    host: 'www.googleapis.com',
->>>>>>> 9664b66c3ee1809cdb9b9b9b856f06a7242a70be
 		    path: '/oauth2/v4/token',
 		    method: 'POST',
 		    headers: {
