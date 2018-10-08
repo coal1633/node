@@ -2,8 +2,10 @@ const express = require('express')
 const bodyParser = require('body-parser')
 require('body-parser-xml')(bodyParser)
 const jwt = require('jsonwebtoken')
+const https = require('https')
 const bcrypt = require('bcryptjs')
 require('./database-structure')
+
 
 const app = express()
 
@@ -701,44 +703,36 @@ app.delete("/advert-skills", function(req,res){
 // POST /oauth2/v4/token HTTP/1.1
 // Host: www.googleapis.com
 // Content-Type: application/x-www-form-urlencoded
-app.post("/third-party", function(req, res){
-
-	const FORM_URLENCODED = 'application/x-www-form-urlencoded';
-
-	 if(req.headers['content-type'] === FORM_URLENCODED) {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
-        });
-        req.on('end', () => {
-            callback(parse(body));
-        });
-    }
+app.post("/oauth2/v4/token", function(req, res){
 
 		const yourCode = req.body.code
-		const grant_type =  req.body.grant_type
 		const client_id = "447167448806-fg9acf7ibl8fndhovnhljgultltbj617.apps.googleusercontent.com"
 		const client_secret = "Cv7kE4o34_ZCdGH42P0jB0s2"
 		const redirect_uri = "http://luntern-node.com/redirect-by-google" 
-		const url= yourCode+"&"+client_id+"&"+client_secret+"&"+redirect_uri+"&"+grant_type
-
+		const url= "code="+yourCode+"&client_id="+client_id+"&client_secret="+client_secret+"&redirect_uri="+redirect_uri+"&grant_type=authorization_code"
+		
 		let post_options = {
-		    host: 'googleapis.com',
-		    port: '80',
+		    host: 'www.googleapis.com',
 		    path: '/oauth2/v4/token',
 		    method: 'POST',
 		    headers: {
-		        'Content-Type': 'application/x-www-form-urlencoded',
-		        'Body': url
-		    }
+		        'Content-Type': 'application/x-www-form-urlencoded'
+			},	
 		};
-
-		let post_req = http.request(post_options, function(res) {
-		    res.setEncoding('utf8');
-		    res.on('data', function (chunk) {
-		        console.log(chunk);
-		    });
+		
+		let post_req = https.request(post_options, function(res) {
+		    res.on('data', function (stuff) {
+				console.log("Stuff: "+ stuff);
+				console.log(stuff.id_token)
+			});
+			
 		});
+		post_req.write(url)
+		
+		post_req.on("error", (e)=>{
+			console.log(e)
+		})
+		post_req.end()
 
 
 		
@@ -751,10 +745,11 @@ app.post("/third-party", function(req, res){
 
 		// get the decoded payload and header
 		var decoded = jwt.decode(idToken, {complete: true});
-		const payload = res.decoded.payload.sub
+//		const payload = res.decoded.payload.sub
 
 		const query = `INSERT INTO User (google_id) VALUES (?)`
-		const values = [payload]
+		const values = ["fvgjhnjmk"]
+		const valid = false
 		if(valid){
 			db.run(query, values, function(error){
 				if(error){
