@@ -701,7 +701,7 @@ app.delete("/advert-skills", function(req,res){
 // POST /oauth2/v4/token HTTP/1.1
 // Host: www.googleapis.com
 // Content-Type: application/x-www-form-urlencoded
-app.post("/oauth2/v4/token", function(req, res){
+app.post("/third-party", function(req, res){
 
 	const FORM_URLENCODED = 'application/x-www-form-urlencoded';
 
@@ -717,12 +717,31 @@ app.post("/oauth2/v4/token", function(req, res){
 
 		const yourCode = req.body.code
 		const grant_type =  req.body.grant_type
-
-
-send a post requst
 		const client_id = "447167448806-fg9acf7ibl8fndhovnhljgultltbj617.apps.googleusercontent.com"
 		const client_secret = "Cv7kE4o34_ZCdGH42P0jB0s2"
-		const redirect_uri = "http://luntern-node.com/redirect-by-google"
+		const redirect_uri = "http://luntern-node.com/redirect-by-google" 
+		const url= yourCode+"&"+client_id+"&"+client_secret+"&"+redirect_uri+"&"+grant_type
+
+		let post_options = {
+		    host: 'googleapis.com',
+		    port: '80',
+		    path: '/oauth2/v4/token',
+		    method: 'POST',
+		    headers: {
+		        'Content-Type': 'application/x-www-form-urlencoded',
+		        'Body': url
+		    }
+		};
+
+		let post_req = http.request(post_options, function(res) {
+		    res.setEncoding('utf8');
+		    res.on('data', function (chunk) {
+		        console.log(chunk);
+		    });
+		});
+
+
+		
 		
 		const idToken = jwt.sign({
 						  sub: client_id,
