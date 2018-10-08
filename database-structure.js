@@ -18,7 +18,7 @@ db.run(`
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username VARCHAR(20) UNIQUE,
 		hashedPassword VARCHAR(15),
-		googleID INTEGER UNIQUE
+		google_id INTEGER UNIQUE
 	)
 `)
 
