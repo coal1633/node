@@ -2,6 +2,24 @@ var express = require('express')
 var router = express.Router()
 const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
+const bodyParser = require('body-parser')
+router.use(bodyParser.json())
+router.use(bodyParser.xml({
+  limit: '1MB',   
+  xmlParseOptions: {
+    normalize: true,     
+    normalizeTags: true, 
+    explicitArray: false 
+  }
+}))
+
+router.use(function(req, res, next){
+	let contentType = req.headers['content-type'];
+	if(contentType=="application/xml"){
+		req.body = req.body[Object.keys(req.body)[0]]
+	}
+	next()
+})
 
 //Retrive user skills 
 router.get("/user-skills/:id", function(req, res){
