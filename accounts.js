@@ -7,6 +7,8 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const jwtSecret = "dsjlksdjlkjfdsl"
 
+var https = require("https")
+
 router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
 router.use(bodyParser.xml({
