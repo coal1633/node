@@ -219,6 +219,7 @@ app.post("/token", function(req, res){
     let query
     let values
 
+<<<<<<< HEAD
 	if(grant_type=="password"){
 		if(user_type=='company'){
 			query = `SELECT * FROM Company WHERE name = ?`
@@ -226,6 +227,27 @@ app.post("/token", function(req, res){
 		}else if(user_type=='user'){
 			query = `SELECT * FROM User WHERE username = ?`
 			values = [name]
+=======
+    if(grant_type!="password"){
+    	res.status(400).json({error: "unsupported_grant_type"})
+    }
+
+	if(user_type=='company'){
+		query = `SELECT * FROM Company WHERE name = ?`
+		values = [name]
+	}else if(user_type=='user'){
+		query = `SELECT * FROM User WHERE username = ?`
+		values = [name]
+	}else{
+		res.status(400).json({error: "invalid_request"})
+	}	
+
+	db.get(query, values, function(error, account){
+		if(error){
+			res.status(500).end()
+		}else if(!account){
+			res.status(400).json({error: "invalid_client"})
+>>>>>>> 4aa66ae64c34bfe60349627379852b28d95d22cb
 		}else{
 			res.status(400).end()
 		}	
