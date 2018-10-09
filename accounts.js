@@ -4,6 +4,10 @@ const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
 const bodyParser = require('body-parser')
 const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const jwtSecret = "dsjlksdjlkjfdsl"
+
+router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
 router.use(bodyParser.xml({
   limit: '1MB',   
@@ -94,7 +98,9 @@ router.post("/company-accounts", function(req, res){
 
 //Getting a token for logging in 
 router.post("/token", function(req, res){
-	const grant_type = req.body.grant_type.trim()
+	let grant_type = req.body.grant_type
+	console.log(req.body)
+	grant_type = grant_type.trim()
 	const name = req.body.username
 	const hashedPassword = req.body.password
 	const googleId=req.body.google_id

@@ -4,6 +4,8 @@ const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
 const bodyParser = require('body-parser')
 
+var authorize = require('./authorize.js');
+
 router.use(bodyParser.json())
 router.use(bodyParser.xml({
   limit: '1MB',   
@@ -56,6 +58,7 @@ router.get("/advert-skills/:id", function(req, res){
 	 	}
  	})
 })
+
 
 //Create advert-skill
 router.post("/advert-skills", function(req, res){

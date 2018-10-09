@@ -13,6 +13,39 @@ router.use(bodyParser.xml({
   }
 }))
 
+var authorize = require('./authorize.js');
+
+function validateAdvert(ad,user_type){
+	var err = []
+	var valid=false
+
+	if(ad.title.length<=0){
+		err.push({'titleTooShort':'Please provide a longer title'})
+	}
+	if( ad.title.length>20){
+		err.push({'titleTooLong':'Please provide a shorter title'})
+	}
+	if(ad.description.length<10){
+		err.push({'descriptionTooShort': 'Please provide a shorter description'})
+	}
+	if(ad.description.length>1000){
+		err.push({'descriptionTooLong': 'Please provide a longer description'})
+	}
+	if(ad.sector.length<1){
+		err.push({'sectorTooShort': 'Please provide a shorter sector'})
+	}
+	if(ad.sector.length>100){
+		err.push({'sectorTooLong': 'Please provide a longer sector'})
+	}
+	if(user_type=="user"){
+		err.push({'invalidCreator':'You are not allowed to access adverts'})
+	}
+ 	if(err.length==0){
+ 		valid=true
+ 	}
+ 	return {valid,err}
+}
+
 router.use(function(req, res, next){
 	let contentType = req.headers['content-type'];
 	if(contentType=="application/xml"){
@@ -20,6 +53,8 @@ router.use(function(req, res, next){
 	}
 	next()
 })
+
+
 
 router.get("/adverts", function(req, res){
 	let query =""
@@ -92,7 +127,9 @@ router.post("/adverts", function(req, res){
 	const advert = req.body
 	const accountData = authorize(req,res,advert.company_id);
 	const tokenAccountId = accountData.tokenAccountId
+
 	const user_type=accountData.user_type
+		console.log(user_type)
 
 	const validData = validateAdvert(advert,user_type)
 	const valid=validData.valid

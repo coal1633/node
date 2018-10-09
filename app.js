@@ -8,6 +8,8 @@ const bcrypt = require('bcryptjs')
 const jwtSecret = "dsjlksdjlkjfdsl"
 const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
+var authorize = require('./authorize.js')
+
 
 var adverts = require('./adverts')
 app.use('/', adverts)
@@ -22,6 +24,7 @@ app.use('/', application)
 var advanced= require('./advanced-functions')
 app.use('/', advanced)
 
+app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 
 app.use(bodyParser.xml({
@@ -113,5 +116,7 @@ db.run(`
 		FOREIGN KEY(\`advert_id\`) REFERENCES \`Advert\`(\`id\`) ON DELETE CASCADE
 	)
 `)
+
+
 
 app.listen(3000)
