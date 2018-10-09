@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken')
 const jwtSecret = "dsjlksdjlkjfdsl"
 
 var https = require("https")
+var authorize = require('./authorize.js')
 
 router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
@@ -36,7 +37,7 @@ router.post("/user-accounts", function(req, res){
 	const theHash = bcrypt.hashSync(password, saltRounds)
 	let valid = true
 
-	if(username.length<5){
+	if(username.length<3){
 		res.status(400).json({"usernameTooShort":"Please provide a longer username"})
 		valid=false
 	}
@@ -70,7 +71,7 @@ router.post("/company-accounts", function(req, res){
 	const theHash = bcrypt.hashSync(password, saltRounds)
 	let valid = true
 
-	if(name.length<5){
+	if(name.length<3){
 		res.status(400).json({"usernameTooShort":"Please provide a longer username"})
 		valid=false
 	}
