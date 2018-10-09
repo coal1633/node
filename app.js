@@ -220,7 +220,6 @@ app.post("/token", function(req, res){
     let values
 
 	if(grant_type=="password"){
-
 		if(user_type=='company'){
 			query = `SELECT * FROM Company WHERE name = ?`
 			values = [name]
