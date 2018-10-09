@@ -81,7 +81,7 @@ function authorize(req,res,accountId){
 		res.status(402).end()
 		return
 	}
-	console.log(tokenAccountId, accountId)
+
 	if(tokenAccountId != accountId){
 		res.status(401).end()
 		return
@@ -210,46 +210,117 @@ app.post("/company-accounts", function(req, res){
 //Getting a token for logging in 
 app.post("/token", function(req, res){
 	
-	const grant_type = req.body.grant_type
+	const grant_type = req.body.grant_type.trim()
 	const name = req.body.username
 	const hashedPassword = req.body.password
-	const user_type=req.body.user_type.toLowerCase()
+	const googleId=req.body.google_id
+	const user_type=req.body.user_type
 
     let query
     let values
 
-	if(user_type=='company'){
-		query = `SELECT * FROM Company WHERE name = ?`
-		values = [name]
-	}else if(user_type=='user'){
-		query = `SELECT * FROM User WHERE username = ?`
-		values = [name]
-	}else{
-		res.status(400).end()
-	}	
-
-	db.get(query, values, function(error, account){
-		if(error){
-			res.status(500).end()
-		}else if(!account){
-			res.status(400).json({error: "invalid_client"})
+	if(grant_type=="password"){
+		if(user_type=='company'){
+			query = `SELECT * FROM Company WHERE name = ?`
+			values = [name]
+		}else if(user_type=='user'){
+			query = `SELECT * FROM User WHERE username = ?`
+			values = [name]
 		}else{
-			if(bcrypt.compareSync(hashedPassword,account.hashedPassword)){
-
-				const accessToken = jwt.sign({accountId: account.id, userType: user_type}, jwtSecret)
-				const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
-
-				res.status(200).json({
-					access_token: accessToken,
-					token_type: "Bearer",
-					id_token:idToken	
-				})
-
-			}else{
+			res.status(400).end()
+		}	
+		db.get(query, values, function(error, account){
+			if(error){
+				res.status(500).end()
+			}else if(!account){
 				res.status(400).json({error: "invalid_client"})
+			}else{
+				if(bcrypt.compareSync(hashedPassword,account.hashedPassword)){
+	
+					const accessToken = jwt.sign({accountId: account.id, userType: user_type}, jwtSecret)
+					const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
+	
+					res.status(200).json({
+						access_token: accessToken,
+						token_type: "Bearer",
+						id_token:idToken	
+					})
+	
+				}else{
+					res.status(400).json({error: "invalid_client"})
+				}
 			}
-		}
-	})
+		})
+	}else if(grant_type=="authorization_code"){
+		const yourCode = req.body.code
+		const client_id = "447167448806-fg9acf7ibl8fndhovnhljgultltbj617.apps.googleusercontent.com"
+		const client_secret = "Cv7kE4o34_ZCdGH42P0jB0s2"
+		const redirect_uri = "http://luntern-node.com/redirect-by-google" 
+		const url= "code="+yourCode+"&client_id="+client_id+"&client_secret="+client_secret+"&redirect_uri="+redirect_uri+"&grant_type=authorization_code"
+		
+		let post_options = {
+		    host: 'www.googleapis.com',
+		    path: '/oauth2/v4/token',
+		    method: 'POST',
+		    headers: {
+		        'Content-Type': 'application/x-www-form-urlencoded'
+			},
+		};
+		let arr=[]
+		let id_token
+		let sub
+		let post_req = https.request(post_options, function(response) {
+		    response.on('data', function (answer) {
+				arr.push(answer)
+			});
+			response.on("end",function(){
+				var arrayString=Buffer.concat(arr)
+				var data = arrayString.toString('utf8')
+				var body = JSON.parse(data)
+				id_token = body.id_token
+
+				var decoded = jwt.decode(id_token);
+				// get the decoded payload and header
+				var decoded = jwt.decode(id_token, {complete: true});
+				sub = decoded.payload.sub
+
+
+				const query = `SELECT * FROM User WHERE google_id = ?`
+				db.get(query, sub, function(error,account){
+					if(error){
+						res.status(500).end()
+					}else if(!account){
+						res.status(400).json({error: "invalid_client"})
+					}else{
+						if(sub==account.google_id){
+							const accessToken = jwt.sign({accountId: account.id, userType: "user"}, jwtSecret)
+							const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
+			
+							res.status(200).json({
+								access_token: accessToken,
+								token_type: "Bearer",
+								id_token:idToken	
+							})
+			
+						}else{
+							res.status(400).json({error: "invalid_client"})
+						}
+					}
+				})
+				
+			})
+		});
+		
+		post_req.write(url)
+		
+		post_req.on("error", (e)=>{
+			console.log(e)
+		})
+		post_req.end()
+	}
+
+
+	
 
 })
 
@@ -372,7 +443,7 @@ app.post("/user-skills", function(req, res){
  	
  	if(user_type=="user"){
  		const query = "INSERT INTO UserSkill(user_id, skill_id) VALUES (?,?)"
- 		const values=[tokenAccountId,req.body.skill_id]
+ 		const values = [tokenAccountId, req.body.skill_id]
  		db.run(query,values,function(error){
 			if (error) {
 				res.status(500).end()
@@ -717,49 +788,51 @@ app.post("/oauth2/v4/token", function(req, res){
 		    method: 'POST',
 		    headers: {
 		        'Content-Type': 'application/x-www-form-urlencoded'
-			},	
+			},
 		};
-		
-		let post_req = https.request(post_options, function(res) {
-		    res.on('data', function (stuff) {
-				console.log("Stuff: "+ stuff);
-				console.log(stuff.id_token)
+		let arr=[]
+		let id_token
+		let sub
+		let post_req = https.request(post_options, function(response) {
+		    response.on('data', function (answer) {
+				arr.push(answer)
 			});
-			
+			response.on("end",function(){
+				var arrayString=Buffer.concat(arr)
+				var data = arrayString.toString('utf8')
+				var body = JSON.parse(data)
+				id_token = body.id_token
+
+				var decoded = jwt.decode(id_token);
+
+				// get the decoded payload and header
+				var decoded = jwt.decode(id_token, {complete: true});
+				sub = decoded.payload.sub
+
+
+				const query = `INSERT INTO User (google_id) VALUES (?)`
+				db.run(query, sub, function(error){
+					if(error){
+						if(error = "SQLITE_CONSTRAINT: UNIQUE constraint failed: User.google_id") {
+							res.status(400).json({error: "GoogleId_not_unique"})
+						} else{
+							res.status(500).end()
+						}
+					}else{
+						res.status(200).end()
+					}
+				})
+				
+			})
 		});
+		
 		post_req.write(url)
 		
 		post_req.on("error", (e)=>{
 			console.log(e)
 		})
 		post_req.end()
-
-
 		
-		
-		const idToken = jwt.sign({
-						  sub: client_id,
-						}, client_secret)
-
-		var decoded = jwt.decode(idToken);
-
-		// get the decoded payload and header
-		var decoded = jwt.decode(idToken, {complete: true});
-//		const payload = res.decoded.payload.sub
-
-		const query = `INSERT INTO User (google_id) VALUES (?)`
-		const values = ["fvgjhnjmk"]
-		const valid = false
-		if(valid){
-			db.run(query, values, function(error){
-				if(error){
-					res.status(500).end()
-				}else{
-					res.setHeader("Location", "/users/"+this.lastID)
-					res.status(201).end()
-				}
-			})
-		}
 })
 
 
