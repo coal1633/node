@@ -187,7 +187,7 @@ router.post("/token", function(req, res){
 						if(sub==account.google_id){
 							const accessToken = jwt.sign({accountId: account.id, userType: "user"}, jwtSecret)
 							const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
-			
+							
 							res.status(200).json({
 								access_token: accessToken,
 								token_type: "Bearer",

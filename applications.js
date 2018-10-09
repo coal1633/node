@@ -12,6 +12,7 @@ router.use(bodyParser.xml({
     explicitArray: false 
   }
 }))
+var authorize = require('./authorize.js')
 
 router.use(function(req, res, next){
 	let contentType = req.headers['content-type'];
