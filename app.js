@@ -218,6 +218,10 @@ app.post("/token", function(req, res){
     let query
     let values
 
+    if(grant_type!="password"){
+    	res.status(400).json({error: "unsupported_grant_type"})
+    }
+
 	if(user_type=='company'){
 		query = `SELECT * FROM Company WHERE name = ?`
 		values = [name]
@@ -225,7 +229,7 @@ app.post("/token", function(req, res){
 		query = `SELECT * FROM User WHERE username = ?`
 		values = [name]
 	}else{
-		res.status(400).end()
+		res.status(400).json({error: "invalid_request"})
 	}	
 
 	db.get(query, values, function(error, account){
