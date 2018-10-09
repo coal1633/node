@@ -4,10 +4,16 @@ require('body-parser-xml')(bodyParser)
 const jwt = require('jsonwebtoken')
 const https = require('https')
 const bcrypt = require('bcryptjs')
-require('./database-structure')
+
+
+//var database = require('./database-structure')
+//app.use('/database-structure', database)
 
 
 const app = express()
+
+var adeverts = require('./adverts')
+app.use('/adverts', adeverts)
 
 const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
@@ -41,10 +47,10 @@ function validateAdvert(ad,user_type){
 	var valid=false
 
 	if(ad.title.length<=0){
-		err.push({'titleTooShort':'Please provide a shorter title'})
+		err.push({'titleTooShort':'Please provide a longer title'})
 	}
 	if( ad.title.length>20){
-		err.push({'titleTooLong':'Please provide a longer title'})
+		err.push({'titleTooLong':'Please provide a shorter title'})
 	}
 	if(ad.description.length<10){
 		err.push({'descriptionTooShort': 'Please provide a shorter description'})
@@ -81,7 +87,7 @@ function authorize(req,res,accountId){
 		res.status(402).end()
 		return
 	}
-
+	console.log(tokenAccountId,accountId)
 	if(tokenAccountId != accountId){
 		res.status(401).end()
 		return
@@ -89,8 +95,6 @@ function authorize(req,res,accountId){
 	return {tokenAccountId, user_type}
 }
 	
-
-
 
 
 //Retriving a specific advert based on id, including skills
@@ -143,11 +147,11 @@ app.post("/user-accounts", function(req, res){
 	const theHash = bcrypt.hashSync(password, saltRounds)
 	let valid = true
 
-	if(name.length<5){
+	if(username.length<5){
 		res.status(400).json({"usernameTooShort":"Please provide a longer username"})
 		valid=false
 	}
-	if(name.length>50){
+	if(username.length>50){
 		res.status(400).json({"usernameTooLong":"Please provide a shorter username"})
 		valid=false
 	}
@@ -196,6 +200,7 @@ app.post("/company-accounts", function(req, res){
 	if(valid){
 		db.run(query, values, function(error){
 		if(error){
+			console.log(error)
 			res.status(500).end()
 		}else{
 			res.setHeader("Location", "/company-accounts/"+this.lastID)
