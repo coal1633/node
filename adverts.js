@@ -54,8 +54,6 @@ router.use(function(req, res, next){
 	next()
 })
 
-
-
 router.get("/adverts", function(req, res){
 	let query =""
 	let values = []
@@ -129,8 +127,6 @@ router.post("/adverts", function(req, res){
 	const tokenAccountId = accountData.tokenAccountId
 
 	const user_type=accountData.user_type
-		console.log(user_type)
-
 	const validData = validateAdvert(advert,user_type)
 	const valid=validData.valid
 	const err=validData.err
@@ -234,8 +230,6 @@ router.put("/adverts/:id", function(req, res){
 	 		}
 	 	}
  	})
-
-	
 })
 
 //Delete advert if you are logged in as the company that created it

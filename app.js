@@ -10,7 +10,6 @@ const sqlite3 = require('sqlite3')
 const db = new sqlite3.Database("database.db")
 var authorize = require('./authorize.js')
 
-
 var adverts = require('./adverts')
 app.use('/', adverts)
 var accounts = require('./accounts')
@@ -116,7 +115,5 @@ db.run(`
 		FOREIGN KEY(\`advert_id\`) REFERENCES \`Advert\`(\`id\`) ON DELETE CASCADE
 	)
 `)
-
-
 
 app.listen(3000)

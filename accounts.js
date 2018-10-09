@@ -28,7 +28,6 @@ router.use(function(req, res, next){
 	next()
 })
 
-
 //Create an User Account
 router.post("/user-accounts", function(req, res){
 	const saltRounds = 10
@@ -101,7 +100,6 @@ router.post("/company-accounts", function(req, res){
 //Getting a token for logging in 
 router.post("/token", function(req, res){
 	let grant_type = req.body.grant_type
-	console.log(req.body)
 	grant_type = grant_type.trim()
 	const name = req.body.username
 	const hashedPassword = req.body.password
