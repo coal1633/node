@@ -33,8 +33,8 @@ router.post("/applications/:id", function(req, res){
 	const user_type=accountData.user_type
  	
  	if(user_type=="user"){
- 		const query = "INSERT INTO Application(user_id, company_id, advert_id) VALUES (?,?,?)"
- 		const values=[tokenAccountId,company_id,advert_id]
+ 		const query = "INSERT INTO Application(user_id, advert_id) VALUES (?,?,?)"
+ 		const values=[tokenAccountId,advert_id]
  		db.run(query,values,function(error){
 			if (error) {
 				res.status(500).end()
