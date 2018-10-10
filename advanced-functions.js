@@ -14,15 +14,7 @@ router.use(bodyParser.xml({
   }
 }))
 
-router.use(function(req, res, next){
-	let contentType = req.headers['content-type'];
-	if(contentType=="application/xml"){
-		req.body = req.body[Object.keys(req.body)[0]]
-	}
-	next()
-})
-
-router.use(function getAllSkills(){
+router.get("/skills",function getAllSkills(req,res){
 	const query="SELECT * FROM Skill"
 	db.all(query, function(error,skills){
 		if(error){
@@ -33,7 +25,8 @@ router.use(function getAllSkills(){
 	})
 })
 
-router.use(function getOneSkill(id){
+router.get("/skills/:id",function getOneSkill(req,res){
+	const id=parseInt(req.params.id)
 	const query="SELECT * FROM Skill WHERE id=?"
 	db.all(query,[id], function(error,skills){
 		if(error){
@@ -44,7 +37,7 @@ router.use(function getOneSkill(id){
 	})
 })
 
-router.use(function getAllUsers() {
+router.get("/users",function getAllUsers(req,res) {
 	const query="SELECT * FROM User"
 	db.all(query, function(error,users){
 		if(error){
@@ -55,7 +48,8 @@ router.use(function getAllUsers() {
 	})
 })
 
-router.use(function getOneUser(id){
+router.get("/users/:id",function getOneUser(req,res){
+	const id=parseInt(req.params.id)
 	const query="SELECT * FROM User WHERE id=?"
 	db.all(query,[id], function(error,users){
 		if(error){
@@ -66,7 +60,7 @@ router.use(function getOneUser(id){
 	})
 })
 
-router.use(function getAllCompanies() {
+router.get("/companies", function getAllCompanies(req,res) {
 	const query="SELECT * FROM Company"
 	db.all(query, function(error,companies){
 		if(error){
@@ -77,7 +71,8 @@ router.use(function getAllCompanies() {
 	})
 })
 
-router.use(function getOneCompany(id){
+router.get("/companies/:id",function getOneCompany(req,res){
+	const id=parseInt(req.params.id)
 	const query="SELECT * FROM Company WHERE id=?"
 	db.all(query,[id], function(error,companies){
 		if(error){
@@ -88,7 +83,7 @@ router.use(function getOneCompany(id){
 	})
 })
 
-router.use(function getAllApplications() {
+router.get("/application",function getAllApplications(req,res) {
 	const query="SELECT * FROM Application"
 	db.all(query, function(error,applications){
 		if(error){
@@ -99,7 +94,8 @@ router.use(function getAllApplications() {
 	})
 })
 
-router.use(function getOneApplication() {
+router.get("/application/:id",function getOneApplication(req,res) {
+	const id=parseInt(req.params.id)
 	const query="SELECT * FROM Application WHERE id=?"
 	db.all(query,[id], function(error,applications){
 		if(error){

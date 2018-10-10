@@ -214,34 +214,70 @@ router.put("/company-accounts/:id", function(req,res){
 	const id = parseInt(req.params.id)
 
 	const accountData=authorize(req,res,id);
-	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
 
-	let name=req.body.name
-	let location=req.body.location
+		let name=req.body.name
+		let location=req.body.location
 
-	let query="UPDATE Company SET "
-	let values=[]
+		let query="UPDATE Company SET "
+		let values=[]
 
-	if (name && !location){
-		query+= "name= ?"
-		values.push(name.toLowerCase())
+		if (name && !location){
+			query+= "name= ?"
+			values.push(name.toLowerCase())
+		}
+		if(location && !name){
+			query+= "location= ?"
+			values.push(location.toLowerCase())
+		}
+		if(name && location){
+			query+="name= ?, location = ?"
+			values.push(name.toLowerCase())
+			values.push(location.toLowerCase())
+		}
+
+		query+= "WHERE id = ?"
+		
+		values.push(tokenAccountId)
+
+		if(user_type=="company"){
+			db.run(query, values, function(error){
+				if(error){
+					res.status(500).end()
+				}else{
+					res.status(202).end()
+				}
+			})
+		}else{
+			res.status(401).end()
+		}
 	}
-	if(location && !name){
-		query+= "location= ?"
-		values.push(location.toLowerCase())
-	}
-	if(name && location){
-		query+="name= ?, location = ?"
-		values.push(name.toLowerCase())
-		values.push(location.toLowerCase())
-	}
-
-	query+= "WHERE id = ?"
 	
-	values.push(tokenAccountId)
+})
 
-	if(user_type=="company"){
+//Update password 
+router.put("/password/:id", function(req,res){
+	const accountId=parseInt(req.params.id)
+	const accountData=authorize(req,res,accountId);
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
+
+		const saltRounds=10
+		const newPassword=req.body.password
+		const theHash = bcrypt.hashSync(newPassword, saltRounds)
+
+		if(user_type=='company'){
+			query = `UPDATE Company SET hashedPassword= ? WHERE id=?`
+		}else if(user_type=='user'){
+			query = `UPDATE User SET hashedPassword= ? WHERE id=?`
+		}else{
+			res.status(400).end()
+		}	
+		const values = [theHash,tokenAccountId]
+
 		db.run(query, values, function(error){
 			if(error){
 				res.status(500).end()
@@ -249,88 +285,64 @@ router.put("/company-accounts/:id", function(req,res){
 				res.status(202).end()
 			}
 		})
-	}else{
-		res.status(401).end()
 	}
-})
-
-//Update password 
-router.put("/password/:id", function(req,res){
-	const accountId=parseInt(req.params.id)
-	const accountData=authorize(req,res,accountId);
-	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
-
-	const saltRounds=10
-	const newPassword=req.body.password
-	const theHash = bcrypt.hashSync(newPassword, saltRounds)
-
-	if(user_type=='company'){
-		query = `UPDATE Company SET hashedPassword= ? WHERE id=?`
-	}else if(user_type=='user'){
-		query = `UPDATE User SET hashedPassword= ? WHERE id=?`
-	}else{
-		res.status(400).end()
-	}	
-	const values = [theHash,tokenAccountId]
-
-	db.run(query, values, function(error){
-		if(error){
-			res.status(500).end()
-		}else{
-			res.status(202).end()
-		}
-	})
+	
 })
 
 //Delete company account
 router.delete("/company-accounts/:id", function(req,res){
 	const id=parseInt(req.params.id)
 	const accountData=authorize(req,res,id);
-	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
 
-	if(user_type=="company"){
-		db.run("DELETE FROM Company WHERE id = ?", [tokenAccountId], function(error){
-			if(error){
-				res.status(500).end()
-			}else{
-				const numberOfDeletetRows = this.changes
-				if(numberOfDeletetRows == 0){
-					res.status(404).end()
+		if(user_type=="company"){
+			db.run("DELETE FROM Company WHERE id = ?", [tokenAccountId], function(error){
+				if(error){
+					res.status(500).end()
 				}else{
-					res.status(200).end()
+					const numberOfDeletetRows = this.changes
+					if(numberOfDeletetRows == 0){
+						res.status(404).end()
+					}else{
+						res.status(200).end()
+					}
 				}
-			}
-		})
-	}else{
-		res.status(401).end()
-	}	
+			})
+		}else{
+			res.status(401).end()
+		}	
+	}
+	
 })
 
 //Delete user account
 router.delete("/user-accounts/:id", function(req,res){
 	const id=parseInt(req.params.id)
-	const accountData=authorize(req,res,id);
-	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
+	const accountData=authorize(req,res,id)
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
 
-	if(user_type=="user"){
-		db.run("DELETE FROM User WHERE id = ?", [tokenAccountId], function(error){
-			if(error){
-				res.status(500).end()
-			}else{
-				const numberOfDeletetRows = this.changes
-				if(numberOfDeletetRows == 0){
-					res.status(404).end()
+		if(user_type=="user"){
+			db.run("DELETE FROM User WHERE id = ?", [tokenAccountId], function(error){
+				if(error){
+					res.status(500).end()
 				}else{
-					res.status(200).end()
+					const numberOfDeletetRows = this.changes
+					if(numberOfDeletetRows == 0){
+						res.status(404).end()
+					}else{
+						res.status(200).end()
+					}
 				}
-			}
-		})
-	}else{
-		res.status(401).end()
+			})
+		}else{
+			res.status(401).end()
+		}
 	}
+	
 })
 
 router.post("/oauth2/v4/token", function(req, res){
