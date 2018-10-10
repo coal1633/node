@@ -21,7 +21,7 @@ router.use(bodyParser.xml({
   }
 }))
 
-//hHndle content negotiation to support XML
+// Handle content negotiation to support XML
 router.use(function(req, res, next){
 	let contentType = req.headers['content-type'];
 	if(contentType=="application/xml"){
@@ -257,7 +257,7 @@ router.put("/company-accounts/:id", function(req,res){
 	
 })
 
-//Update password 
+// Update password 
 router.put("/password/:id", function(req,res){
 	const accountId=parseInt(req.params.id)
 	const accountData=authorize(req,res,accountId);
