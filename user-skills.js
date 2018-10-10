@@ -23,7 +23,7 @@ router.use(function(req, res, next){
 	next()
 })
 
-//Retrive user skills 
+//Handle GET request to /user-skills
 router.get("/user-skills/:id", function(req, res){
 	const user_id = parseInt(req.params.id)
 
@@ -40,7 +40,7 @@ router.get("/user-skills/:id", function(req, res){
  	})
 })
 
-//Create user-skills
+//Handle POST request to /user-skills
 router.post("/user-skills", function(req, res){
 	const user_id=req.body.id
 	const accountData=authorize(req,res,user_id);
@@ -63,10 +63,9 @@ router.post("/user-skills", function(req, res){
 			res.status(401).end()
 		}
 	}
-	
 })
 
-//Delete user-skills
+//Handle DELETE request to /user-skills
 router.delete("/user-skills", function(req,res){
 	const skill_id=req.body.skill_id
 	const accountData=authorize(req,res,req.body.user_id);
@@ -74,23 +73,22 @@ router.delete("/user-skills", function(req,res){
 		const tokenAccountId = accountData.tokenAccountId
 		const user_type=accountData.user_type
 		if(user_type=="user"){
-		db.run("DELETE FROM UserSkill WHERE user_id = ? and skill_id=?", [tokenAccountId,skill_id], function(error){
-			if(error){
-				res.status(500).end()
-			}else{
-				const numberOfDeletetRows = this.changes
-				if(numberOfDeletetRows == 0){
-					res.status(404).end()
+			db.run("DELETE FROM UserSkill WHERE user_id = ? and skill_id=?", [tokenAccountId,skill_id], function(error){
+				if(error){
+					res.status(500).end()
 				}else{
-					res.status(200).end()
+					const numberOfDeletetRows = this.changes
+					if(numberOfDeletetRows == 0){
+						res.status(404).end()
+					}else{
+						res.status(200).end()
+					}
 				}
-			}
-		})
-	}else{
-		res.status(401).end()
+			})
+		}else{
+			res.status(401).end()
+		}
 	}
-	}
-	
 })
 
 module.exports = router

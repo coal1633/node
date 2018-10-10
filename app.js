@@ -44,8 +44,6 @@ app.use(function(req, res, next){
 	next()
 })
 
-app.use(bodyParser.urlencoded({extended: false}))
-
 db.run("PRAGMA foreign_keys = ON")
 
 db.run(`

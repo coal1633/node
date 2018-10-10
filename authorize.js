@@ -2,6 +2,7 @@
  const jwt = require('jsonwebtoken')
  const jwtSecret = "dsjlksdjlkjfdsl"
 
+//Authorize the logged in user
 module.exports = (function authorize(req,res,accountId){
 	const authorizationHeader = req.get("Authorization")
 	const accessToken = authorizationHeader.substr(7)

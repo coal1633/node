@@ -22,7 +22,7 @@ function validateAdvert(ad,user_type){
 	if(ad.title.length<=0){
 		err.push({'titleTooShort':'Please provide a longer title'})
 	}
-	if( ad.title.length>20){
+	if( ad.title.length>50){
 		err.push({'titleTooLong':'Please provide a shorter title'})
 	}
 	if(ad.description.length<10){

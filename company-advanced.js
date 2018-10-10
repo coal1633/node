@@ -14,7 +14,6 @@ router.use(bodyParser.xml({
   }
 }))
 
-
 router.get("/companies", function getAllCompanies(req,res) {
 	const query="SELECT * FROM Company"
 	db.all(query, function(error,companies){
@@ -37,7 +36,6 @@ router.get("/companies/:id",function getOneCompany(req,res){
 		}
 	})
 })
-
 
 module.exports = router
 
