@@ -21,6 +21,7 @@ router.use(bodyParser.xml({
   }
 }))
 
+//hHndle content negotiation to support XML
 router.use(function(req, res, next){
 	let contentType = req.headers['content-type'];
 	if(contentType=="application/xml"){
@@ -29,12 +30,12 @@ router.use(function(req, res, next){
 	next()
 })
 
-//Create an User Account
+// Handle POST request to /user-accounts
 router.post("/user-accounts", function(req, res){
 	const saltRounds = 10
 	const username = req.body.username
 	const password = req.body.password
-	const theHash = bcrypt.hashSync(password, saltRounds)
+	const hash = bcrypt.hashSync(password, saltRounds)
 	let valid = true
 
 	if(username.length<3){
@@ -47,7 +48,7 @@ router.post("/user-accounts", function(req, res){
 	}
 
 	const query = `INSERT INTO User (username, hashedPassword) VALUES (?,?)`
-	const values = [username, theHash]
+	const values = [username, hash]
 	if(valid){
 		db.run(query, values, function(error){
 			if(error){
@@ -62,13 +63,13 @@ router.post("/user-accounts", function(req, res){
 
 })
 
-//Create an Company Account
+// Handle POST request to /company-accounts
 router.post("/company-accounts", function(req, res){
 	const saltRounds = 10
 	const name = req.body.username
 	const password = req.body.password
 	const location = req.body.location.toLowerCase()
-	const theHash = bcrypt.hashSync(password, saltRounds)
+	const hash = bcrypt.hashSync(password, saltRounds)
 	let valid = true
 
 	if(name.length<3){
@@ -84,7 +85,7 @@ router.post("/company-accounts", function(req, res){
 		INSERT INTO Company (name, hashedPassword, location)
 		VALUES (?,?,?)
 	`
-	const values = [name, theHash, location]
+	const values = [name, hash, location]
 
 	if(valid){
 		db.run(query, values, function(error){
@@ -98,13 +99,12 @@ router.post("/company-accounts", function(req, res){
 	}
 })
 
-//Getting a token for logging in 
+// Handle POST request to /token
 router.post("/token", function(req, res){
 	let grant_type = req.body.grant_type
 	grant_type = grant_type.trim()
 	const name = req.body.username
 	const hashedPassword = req.body.password
-	const googleId=req.body.google_id
 	const user_type=req.body.user_type
 
     let query
@@ -129,7 +129,7 @@ router.post("/token", function(req, res){
 				if(bcrypt.compareSync(hashedPassword,account.hashedPassword)){
 	
 					const accessToken = jwt.sign({accountId: account.id, userType: user_type}, jwtSecret)
-					const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
+					const idToken = jwt.sign({sub:account.id, userType: user_type}, jwtSecret)
 	
 					res.status(200).json({
 						access_token: accessToken,
@@ -185,7 +185,7 @@ router.post("/token", function(req, res){
 					}else{
 						if(sub==account.google_id){
 							const accessToken = jwt.sign({accountId: account.id, userType: "user"}, jwtSecret)
-							const idToken = jwt.sign({sub:account.id,preferred_username: name}, jwtSecret)
+							const idToken = jwt.sign({sub:account.id,  userType: "user"}, jwtSecret)
 							
 							res.status(200).json({
 								access_token: accessToken,
@@ -209,7 +209,7 @@ router.post("/token", function(req, res){
 	}
 })
 
-//Update company location or name 
+// Handle PUT request to /company-accounts/:id
 router.put("/company-accounts/:id", function(req,res){
 	const id = parseInt(req.params.id)
 
@@ -286,10 +286,41 @@ router.put("/password/:id", function(req,res){
 			}
 		})
 	}
+})
+
+// Handle PUT request to /password/:id
+router.put("/password/:id", function(req,res){
+	const accountId=parseInt(req.params.id)
+	const accountData=authorize(req,res,accountId)
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
+
+		const saltRounds=10
+		const newPassword=req.body.password
+		const hash = bcrypt.hashSync(newPassword, saltRounds)
+
+		if(user_type=='company'){
+			query = `UPDATE Company SET hashedPassword= ? WHERE id=?`
+		}else if(user_type=='user'){
+			query = `UPDATE User SET hashedPassword= ? WHERE id=?`
+		}else{
+			res.status(400).end()
+		}	
+		const values = [hash,tokenAccountId]
+
+		db.run(query, values, function(error){
+			if(error){
+				res.status(500).end()
+			}else{
+				res.status(202).end()
+			}
+		})
+	}
 	
 })
 
-//Delete company account
+// Handle DELETE request to /company-accounts/:id
 router.delete("/company-accounts/:id", function(req,res){
 	const id=parseInt(req.params.id)
 	const accountData=authorize(req,res,id);
@@ -317,7 +348,7 @@ router.delete("/company-accounts/:id", function(req,res){
 	
 })
 
-//Delete user account
+// Handle DELETE request to /user-accounts/:id
 router.delete("/user-accounts/:id", function(req,res){
 	const id=parseInt(req.params.id)
 	const accountData=authorize(req,res,id)
@@ -345,6 +376,7 @@ router.delete("/user-accounts/:id", function(req,res){
 	
 })
 
+// Handle POST request to /oauth2/v4/token
 router.post("/oauth2/v4/token", function(req, res){
 	const yourCode = req.body.code
 	const client_id = "447167448806-fg9acf7ibl8fndhovnhljgultltbj617.apps.googleusercontent.com"
