@@ -64,49 +64,55 @@ router.get("/advert-skills/:id", function(req, res){
 router.post("/advert-skills", function(req, res){
 	const accountData=authorize(req,res,req.body.id);
 	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
+	if(accountData){
+		const user_type=accountData.user_type
  
- 	if(user_type=="company"){
- 		const query = "INSERT INTO AdvertSkill(advert_id, skill_id) VALUES (?,?)"
- 		const values=[req.body.advert_id,req.body.skill_id]
- 		db.run(query,values,function(error){
-			if (error) {
-				res.status(500).end()
+	 	if(user_type=="company"){
+	 		const query = "INSERT INTO AdvertSkill(advert_id, skill_id) VALUES (?,?)"
+	 		const values=[req.body.advert_id,req.body.skill_id]
+	 		db.run(query,values,function(error){
+				if (error) {
+					res.status(500).end()
 
-			}else{
-				res.status(201).end()
-			}
-		})
-	}else{
-		res.status(401).end()
+				}else{
+					res.status(201).end()
+				}
+			})
+		}else{
+			res.status(401).end()
+		}
 	}
+
 })
 
 //Delete advert-skill
 router.delete("/advert-skills", function(req,res){
 	const skill_id=req.body.skill_id
 	const accountData=authorize(req,res,req.body.company_id);
-	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
-	const advert_id=req.body.advert_id
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
+		const advert_id=req.body.advert_id
 
-	const query="DELETE FROM AdvertSkill WHERE advert_id =? and skill_id=?"
-	if(user_type=="company"){
-		db.run(query, [advert_id,skill_id], function(error){
-			if(error){
-				res.status(500).end()
-			}else{
-				const numberOfDeletetRows = this.changes
-				if(numberOfDeletetRows == 0){
-					res.status(404).end()
+		const query="DELETE FROM AdvertSkill WHERE advert_id =? and skill_id=?"
+		if(user_type=="company"){
+			db.run(query, [advert_id,skill_id], function(error){
+				if(error){
+					res.status(500).end()
 				}else{
-					res.status(200).end()
+					const numberOfDeletetRows = this.changes
+					if(numberOfDeletetRows == 0){
+						res.status(404).end()
+					}else{
+						res.status(200).end()
+					}
 				}
-			}
-		})
-	}else{
-		res.status(401).end()
+			})
+		}else{
+			res.status(401).end()
+		}
 	}
+	
 })
 
 module.exports = router

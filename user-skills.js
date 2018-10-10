@@ -44,33 +44,36 @@ router.get("/user-skills/:id", function(req, res){
 router.post("/user-skills", function(req, res){
 	const user_id=req.body.id
 	const accountData=authorize(req,res,user_id);
-	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
- 	
- 	if(user_type=="user"){
- 		const query = "INSERT INTO UserSkill(user_id, skill_id) VALUES (?,?)"
- 		const values = [tokenAccountId, req.body.skill_id]
- 		db.run(query,values,function(error){
-			if (error) {
-				res.status(500).end()
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
+	 	
+	 	if(user_type=="user"){
+	 		const query = "INSERT INTO UserSkill(user_id, skill_id) VALUES (?,?)"
+	 		const values = [tokenAccountId, req.body.skill_id]
+	 		db.run(query,values,function(error){
+				if (error) {
+					res.status(500).end()
 
-			}else{
-				res.status(201).end()
-			}
-		})
- 	}else{
-		res.status(401).end()
+				}else{
+					res.status(201).end()
+				}
+			})
+	 	}else{
+			res.status(401).end()
+		}
 	}
+	
 })
 
 //Delete user-skills
 router.delete("/user-skills", function(req,res){
 	const skill_id=req.body.skill_id
 	const accountData=authorize(req,res,req.body.user_id);
-	const tokenAccountId = accountData.tokenAccountId
-	const user_type=accountData.user_type
-
-	if(user_type=="user"){
+	if(accountData){
+		const tokenAccountId = accountData.tokenAccountId
+		const user_type=accountData.user_type
+		if(user_type=="user"){
 		db.run("DELETE FROM UserSkill WHERE user_id = ? and skill_id=?", [tokenAccountId,skill_id], function(error){
 			if(error){
 				res.status(500).end()
@@ -86,6 +89,8 @@ router.delete("/user-skills", function(req,res){
 	}else{
 		res.status(401).end()
 	}
+	}
+	
 })
 
 module.exports = router
