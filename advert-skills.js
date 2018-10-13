@@ -104,7 +104,7 @@ router.delete("/advert-skills", function(req,res){
 					if(numberOfDeletetRows == 0){
 						res.status(404).end()
 					}else{
-						res.status(200).end()
+						res.status(204).end()
 					}
 				}
 			})
