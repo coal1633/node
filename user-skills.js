@@ -26,7 +26,7 @@ router.use(function(req, res, next){
 //Handle GET request to /user-skills
 router.get("/user-skills/:id", function(req, res){
 	const user_id = parseInt(req.params.id)
-	
+
 	const query = `SELECT * FROM Skill 
 	JOIN UserSkill ON Skill.id=UserSkill.skill_id
 	WHERE user_id=?`
