@@ -15,14 +15,6 @@ router.use(bodyParser.xml({
   }
 }))
 
-router.use(function(req, res, next){
-	let contentType = req.headers['content-type'];
-	if(contentType=="application/xml"){
-		req.body = req.body[Object.keys(req.body)[0]]
-	}
-	next()
-})
-
 //Handle GET request to /user-skills
 router.get("/user-skills/:id", function(req, res){
 	const user_id = parseInt(req.params.id)

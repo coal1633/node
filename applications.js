@@ -16,14 +16,6 @@ router.use(bodyParser.xml({
 
 var authorize = require('./authorize.js')
 
-router.use(function(req, res, next){
-	let contentType = req.headers['content-type'];
-	if(contentType=="application/xml"){
-		req.body = req.body[Object.keys(req.body)[0]]
-	}
-	next()
-})
-
 //Handle POST request to /applications
 router.post("/applications/:id", function(req, res){
 	const advert_id=parseInt(req.params.id)

@@ -16,14 +16,6 @@ router.use(bodyParser.xml({
   }
 }))
 
-router.use(function(req, res, next){
-	let contentType = req.headers['content-type'];
-	if(contentType=="application/xml"){
-		req.body = req.body[Object.keys(req.body)[0]]
-	}
-	next()
-})
-
 //Retriving specific adverts based on certain skill 
 router.get("/advert-skills", function(req, res){
 	const skill = req.query.skill.toLowerCase()
