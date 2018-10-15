@@ -46,14 +46,6 @@ function validateAdvert(ad,user_type){
  	return {valid,err}
 }
 
-router.use(function(req, res, next){
-	let contentType = req.headers['content-type'];
-	if(contentType=="application/xml"){
-		req.body = req.body[Object.keys(req.body)[0]]
-	}
-	next()
-})
-
 router.get("/adverts", function(req, res){
 	let query =""
 	let values = []

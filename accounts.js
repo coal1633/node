@@ -21,15 +21,6 @@ router.use(bodyParser.xml({
   }
 }))
 
-// Handle content negotiation to support XML
-router.use(function(req, res, next){
-	let contentType = req.headers['content-type'];
-	if(contentType=="application/xml"){
-		req.body = req.body[Object.keys(req.body)[0]]
-	}
-	next()
-})
-
 // Handle POST request to /user-accounts
 router.post("/user-accounts", function(req, res){
 	const saltRounds = 10
