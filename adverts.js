@@ -254,7 +254,8 @@ router.put("/adverts/:id", function(req, res){
 //Delete advert if you are logged in as the company that created it
 router.delete("/adverts/:id", function(req,res){
 	const id=parseInt(req.params.id)
-	const accountData=authorize(req,res,req.body.id);
+	const company_id=parseInt(req.query.company_id)
+	const accountData=authorize(req,res,company_id);
 	if(accountData){
 		const tokenAccountId = accountData.tokenAccountId
 		const user_type=accountData.user_type

@@ -61,9 +61,11 @@ router.post("/advert-skills", function(req, res){
 })
 
 //Delete advert-skill
-router.delete("/advert-skills", function(req,res){
-	const skill_id=req.body.skill_id
-	const accountData=authorize(req,res,req.body.company_id);
+router.delete("/advert-skills/:id", function(req,res){
+	const advert_id=parseInt(req.params.id)
+	const skill_id=req.query.skill_id
+	const company_id=req.query.company_id
+	const accountData=authorize(req,res,company_id);
 	if(accountData){
 		const tokenAccountId = accountData.tokenAccountId
 		const user_type=accountData.user_type
