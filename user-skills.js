@@ -58,9 +58,10 @@ router.post("/user-skills", function(req, res){
 })
 
 //Handle DELETE request to /user-skills
-router.delete("/user-skills", function(req,res){
-	const skill_id=req.body.skill_id
-	const accountData=authorize(req,res,req.body.user_id);
+router.delete("/user-skills/:id", function(req,res){
+	const user_id=parseInt(req.params.id)
+	const skill_id=req.query.skill_id
+	const accountData=authorize(req,res,user_id);
 	if(accountData){
 		const tokenAccountId = accountData.tokenAccountId
 		const user_type=accountData.user_type

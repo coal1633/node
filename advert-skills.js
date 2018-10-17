@@ -16,23 +16,6 @@ router.use(bodyParser.xml({
   }
 }))
 
-//Retriving specific adverts based on certain skill 
-router.get("/advert-skills", function(req, res){
-	const skill = req.query.skill.toLowerCase()
-	const query = `
-		SELECT * FROM Advert
-		JOIN AdvertSkill ON Advert.id=AdvertSkill.advert_id
-		JOIN Skill ON AdvertSkill.skill_id=Skill.id
-		WHERE skill_name=?
-	`
- 	db.all(query,[skill], function(error, adverts){
-	 	if(error){
-	 		res.status(404).end()
-	 	}else{
-	 	    res.status(200).json(adverts)
-	 	}
- 	})
-})
 
 //Retrive all skills of an advert 
 router.get("/advert-skills/:id", function(req, res){
@@ -78,9 +61,11 @@ router.post("/advert-skills", function(req, res){
 })
 
 //Delete advert-skill
-router.delete("/advert-skills", function(req,res){
-	const skill_id=req.body.skill_id
-	const accountData=authorize(req,res,req.body.company_id);
+router.delete("/advert-skills/:id", function(req,res){
+	const advert_id=parseInt(req.params.id)
+	const skill_id=req.query.skill_id
+	const company_id=req.query.company_id
+	const accountData=authorize(req,res,company_id);
 	if(accountData){
 		const tokenAccountId = accountData.tokenAccountId
 		const user_type=accountData.user_type

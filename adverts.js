@@ -90,6 +90,24 @@ router.get("/adverts", function(req, res){
  	})
 })
 
+//Retriving specific adverts based on certain skill 
+router.get("/adverts/:skill", function(req, res){
+	const skill = req.params.skill.toString().toLowerCase()
+	const query = `
+		SELECT * FROM Advert
+		JOIN AdvertSkill ON Advert.id=AdvertSkill.advert_id
+		JOIN Skill ON AdvertSkill.skill_id=Skill.id
+		WHERE skill_name=?
+	`
+ 	db.all(query,[skill], function(error, adverts){
+	 	if(error){
+	 		res.status(404).end()
+	 	}else{
+	 	    res.status(200).json(adverts)
+	 	}
+ 	})
+})
+
 //Retriving a specific advert based on id, including skills
 router.get("/adverts/:id", function(req, res){
 	const id = parseInt(req.params.id)
@@ -236,7 +254,8 @@ router.put("/adverts/:id", function(req, res){
 //Delete advert if you are logged in as the company that created it
 router.delete("/adverts/:id", function(req,res){
 	const id=parseInt(req.params.id)
-	const accountData=authorize(req,res,req.body.id);
+	const company_id=parseInt(req.query.company_id)
+	const accountData=authorize(req,res,company_id);
 	if(accountData){
 		const tokenAccountId = accountData.tokenAccountId
 		const user_type=accountData.user_type
