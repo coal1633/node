@@ -367,8 +367,8 @@ router.delete("/user-accounts/:id", function(req,res){
 	
 })
 
-// Handle POST request to /oauth2/v4/token
-router.post("/oauth2/v4/token", function(req, res){
+// Handle POST request to /user-accounts/google
+router.post("/user-accounts/google", function(req, res){
 	const yourCode = req.body.code
 	const client_id = "447167448806-fg9acf7ibl8fndhovnhljgultltbj617.apps.googleusercontent.com"
 	const client_secret = "Cv7kE4o34_ZCdGH42P0jB0s2"

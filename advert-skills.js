@@ -18,7 +18,7 @@ router.use(bodyParser.xml({
 
 
 //Retrive all skills of an advert 
-router.get("/advert-skills/:id", function(req, res){
+router.get("/advert-skills/advert/:id", function(req, res){
 	const advert_id = parseInt(req.params.id)
 
 	const query = `SELECT * FROM Skill 
