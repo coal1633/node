@@ -16,23 +16,6 @@ router.use(bodyParser.xml({
   }
 }))
 
-//Retriving specific adverts based on certain skill 
-router.get("/advert-skills", function(req, res){
-	const skill = req.query.skill.toLowerCase()
-	const query = `
-		SELECT * FROM Advert
-		JOIN AdvertSkill ON Advert.id=AdvertSkill.advert_id
-		JOIN Skill ON AdvertSkill.skill_id=Skill.id
-		WHERE skill_name=?
-	`
- 	db.all(query,[skill], function(error, adverts){
-	 	if(error){
-	 		res.status(404).end()
-	 	}else{
-	 	    res.status(200).json(adverts)
-	 	}
- 	})
-})
 
 //Retrive all skills of an advert 
 router.get("/advert-skills/:id", function(req, res){
